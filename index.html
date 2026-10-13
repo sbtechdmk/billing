@@ -65,7 +65,7 @@
     </header>
 
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6" id="tab-content">
-        <div class="text-center py-20 text-slate-400">Loading Cloud Database...</div>
+        <div class="text-center py-20 text-slate-400">Loading Cloud Database & Software...</div>
     </main>
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
@@ -74,7 +74,7 @@
 
     <script>
         // ==========================================
-        // FIREBASE CONFIGURATION (Tapaiko aafnai API keys)
+        // FIREBASE CONFIGURATION
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyDmvvmLLbDR7RLUDpIz2y3dsu9zXORdlr8",
@@ -86,7 +86,6 @@
             measurementId: "G-C7P9R3KGLB"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -96,8 +95,10 @@
         let currentCart = [];
         let activeTab = 'pos';
 
+        // Load Data from Cloud Firestore
         async function loadDataFromCloud() {
             try {
+                // Products
                 const prodSnap = await db.collection('products').get();
                 if (!prodSnap.empty) {
                     products = prodSnap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
@@ -114,6 +115,7 @@
                     }
                 }
 
+                // Customers
                 const custSnap = await db.collection('customers').get();
                 if (!custSnap.empty) {
                     customers = custSnap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
@@ -127,6 +129,7 @@
                     }
                 }
 
+                // Sales
                 const salesSnap = await db.collection('sales').orderBy('date', 'desc').get();
                 sales = salesSnap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
 
@@ -141,7 +144,7 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const colorClass = type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white';
-            toast.className = `${colorClass} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2`;
+            toast.className = `${colorClass} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2 animate-bounce`;
             toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ${message}`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -177,7 +180,9 @@
                     </div>
                     <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/50">
                         <span class="text-lg font-bold text-emerald-400">Rs. ${p.price.toLocaleString()}</span>
-                        <button class="bg-blue-600/35 hover:bg-blue-600 text-blue-300 hover:text-white px-3 py-1 rounded-lg text-xs font-medium transition">Add</button>
+                        <button class="bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white px-3 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus font-bold"></i> Add
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -186,15 +191,17 @@
                 <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/40 text-sm">
                     <div class="flex-1">
                         <div class="font-medium text-slate-200">${item.name}</div>
-                        <div class="text-xs text-slate-400">Rs. ${item.price} x ${item.qty} = Rs. ${item.price * item.qty}</div>
+                        <div class="text-xs text-slate-400">Rs. ${item.price.toLocaleString()} x ${item.qty} = Rs. ${(item.price * item.qty).toLocaleString()}</div>
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="flex items-center bg-slate-800 rounded-lg border border-slate-700">
-                            <button onclick="updateCartQty(${idx}, -1)" class="w-7 h-7 flex items-center justify-center text-slate-300">-</button>
+                            <button onclick="updateCartQty(${idx}, -1)" class="w-7 h-7 flex items-center justify-center text-slate-300 hover:bg-slate-700 rounded-l-lg">-</button>
                             <span class="w-8 text-center text-xs font-semibold">${item.qty}</span>
-                            <button onclick="updateCartQty(${idx}, 1)" class="w-7 h-7 flex items-center justify-center text-slate-300">+</button>
+                            <button onclick="updateCartQty(${idx}, 1)" class="w-7 h-7 flex items-center justify-center text-slate-300 hover:bg-slate-700 rounded-r-lg">+</button>
                         </div>
-                        <button onclick="removeFromCart(${idx})" class="text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="removeFromCart(${idx})" class="text-rose-400 hover:text-rose-300 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -204,9 +211,11 @@
             container.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 space-y-4">
-                        <div class="relative">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" onkeyup="filterPOSProducts(this.value)" placeholder="Search products..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 text-sm">
+                        <div class="flex gap-3 items-center">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="pos-search" onkeyup="filterPOSProducts(this.value)" placeholder="Search products by name or category..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-blue-500">
+                            </div>
                         </div>
                         <div id="pos-product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             ${itemsHTML}
@@ -216,15 +225,17 @@
                     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-24">
                         <div>
                             <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
-                                <h2 class="font-bold text-lg text-slate-100">Current Order</h2>
-                                <button onclick="clearCart()" class="text-xs text-rose-400">Clear</button>
+                                <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-cart-shopping text-blue-400"></i> Current Order
+                                </h2>
+                                <button onclick="clearCart()" class="text-xs text-rose-400 hover:underline">Clear All</button>
                             </div>
 
                             <div class="mb-4">
-                                <label class="block text-xs text-slate-400 mb-1">Customer</label>
+                                <label class="block text-xs text-slate-400 mb-1">Customer (ग्राहक)</label>
                                 <select id="cart-customer" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-200">
-                                    <option value="">Walk-in Customer</option>
-                                    ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'No Phone'})</option>`).join('')}
+                                    <option value="">Walk-in Customer (नगदी ग्राहक)</option>
+                                    ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone \vert{}\vert{} 'No Phone'}) - Credit: Rs.${c.creditBalance}</option>`).join('')}
                                 </select>
                             </div>
 
@@ -234,21 +245,32 @@
                         </div>
 
                         <div class="pt-4 border-t border-slate-700 space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-400">Total Items:</span>
+                                <span class="text-slate-200 font-semibold">${currentCart.reduce((acc, item) => acc + item.qty, 0)}</span>
+                            </div>
                             <div class="flex justify-between text-lg font-bold">
                                 <span class="text-slate-300">Grand Total:</span>
                                 <span class="text-emerald-400">Rs. ${subtotal.toLocaleString()}</span>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-2">
-                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900 text-xs text-slate-200 cursor-pointer">
-                                    <input type="radio" name="payment-method" value="Cash" checked> Cash
-                                </label>
-                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900 text-xs text-slate-200 cursor-pointer">
-                                    <input type="radio" name="payment-method" value="Fonepay"> Fonepay
-                                </label>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1.5 font-medium">Payment Mode (भुक्तानीको प्रकार)</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900/80 hover:border-emerald-500 cursor-pointer text-xs font-medium text-slate-200 transition has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-950/30 has-[:checked]:text-emerald-400">
+                                        <input type="radio" name="payment-method" value="Cash" checked class="accent-emerald-500">
+                                        <i class="fa-solid fa-money-bill-wave text-emerald-400"></i> Cash
+                                    </label>
+                                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900/80 hover:border-purple-500 cursor-pointer text-xs font-medium text-slate-200 transition has-[:checked]:border-purple-500 has-[:checked]:bg-purple-950/30 has-[:checked]:text-purple-400">
+                                        <input type="radio" name="payment-method" value="Fonepay" class="accent-purple-500">
+                                        <i class="fa-solid fa-qrcode text-purple-400"></i> Fonepay / QR
+                                    </label>
+                                </div>
                             </div>
 
-                            <button onclick="processCheckout()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-semibold text-white rounded-xl shadow-lg">Complete Sale</button>
+                            <button onclick="processCheckout()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-semibold text-white rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-check"></i> Complete Sale & Bill
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -258,18 +280,24 @@
         function addToCart(prodId) {
             const product = products.find(p => p.id === prodId);
             if (!product || product.stock <= 0) {
-                showToast("Out of stock!", "error");
+                showToast("Product out of stock!", "error");
                 return;
             }
-            const existing = currentCart.find(item => item.id === prodId);
-            if (existing) {
-                if (existing.qty + 1 > product.stock) {
-                    showToast("Stock limit reached!", "error");
+
+            const existingIndex = currentCart.findIndex(item => item.id === prodId);
+            if (existingIndex > -1) {
+                if (currentCart[existingIndex].qty + 1 > product.stock) {
+                    showToast("Cannot exceed available stock!", "error");
                     return;
                 }
-                existing.qty += 1;
+                currentCart[existingIndex].qty += 1;
             } else {
-                currentCart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+                currentCart.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    qty: 1
+                });
             }
             renderPOS();
         }
@@ -278,36 +306,62 @@
             const item = currentCart[idx];
             const product = products.find(p => p.id === item.id);
             const newQty = item.qty + change;
-            if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
-            if (product && newQty > product.stock) { showToast("Stock limit reached!", "error"); return; }
+
+            if (newQty <= 0) {
+                removeFromCart(idx);
+                return;
+            }
+
+            if (product && newQty > product.stock) {
+                showToast("Stock limit reached!", "error");
+                return;
+            }
+
             item.qty = newQty;
             renderPOS();
         }
 
-        function removeFromCart(idx) { currentCart.splice(idx, 1); renderPOS(); }
-        function clearCart() { currentCart = []; renderPOS(); }
+        function removeFromCart(idx) {
+            currentCart.splice(idx, 1);
+            renderPOS();
+        }
+
+        function clearCart() {
+            currentCart = [];
+            renderPOS();
+        }
 
         function filterPOSProducts(query) {
             const q = query.toLowerCase();
-            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
-            document.getElementById('pos-product-grid').innerHTML = filtered.map(p => `
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-blue-500 transition cursor-pointer flex flex-col justify-between" onclick="addToCart('${p.id}')">
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q) || (p.category && p.category.toLowerCase().includes(q)));
+            const grid = document.getElementById('pos-product-grid');
+            if (!grid) return;
+
+            grid.innerHTML = filtered.map(p => `
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/60 hover:border-blue-500/50 transition cursor-pointer flex flex-col justify-between" onclick="addToCart('${p.id}')">
                     <div>
                         <div class="flex justify-between items-start mb-2">
                             <h3 class="font-semibold text-slate-100">${p.name}</h3>
-                            <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Stock: ${p.stock}</span>
+                            <span class="text-xs ${p.stock > 0 ? 'bg-slate-700 text-slate-300' : 'bg-rose-950 text-rose-300'} px-2 py-0.5 rounded-full">Stock: ${p.stock}</span>
                         </div>
+                        <p class="text-xs text-slate-400 mb-2">Category: ${p.category || 'General'}</p>
                     </div>
                     <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/50">
-                        <span class="text-lg font-bold text-emerald-400">Rs. ${p.price}</span>
-                        <button class="bg-blue-600/35 px-3 py-1 rounded-lg text-xs text-blue-300">Add</button>
+                        <span class="text-lg font-bold text-emerald-400">Rs. ${p.price.toLocaleString()}</span>
+                        <button class="bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white px-3 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus font-bold"></i> Add
+                        </button>
                     </div>
                 </div>
             `).join('');
         }
 
         async function processCheckout() {
-            if (currentCart.length === 0) { showToast("Cart is empty!", "error"); return; }
+            if (currentCart.length === 0) {
+                showToast("Cart is empty!", "error");
+                return;
+            }
+
             const customerId = document.getElementById('cart-customer').value;
             const customerObj = customers.find(c => c.id === customerId);
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'Cash';
@@ -323,47 +377,75 @@
                 paymentMethod: paymentMethod
             };
 
+            // Deduct stock in Cloud Firestore
             for(let cartItem of currentCart) {
                 const prod = products.find(p => p.id === cartItem.id);
-                if(prod) {
+                if (prod) {
                     prod.stock = Math.max(0, prod.stock - cartItem.qty);
-                    if(prod.firebaseId) {
+                    if (prod.firebaseId) {
                         await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
                     }
                 }
             }
 
+            // Save sale to Cloud Firestore
             const docRef = await db.collection('sales').add(sale);
             sales.unshift({ firebaseId: docRef.id, ...sale });
 
-            showToast("Sale completed & saved to Cloud!");
+            showToast(`Sale completed via ${paymentMethod}!`);
             showReceiptModal(sale);
             clearCart();
         }
 
         function renderProducts() {
             const container = document.getElementById('tab-content');
+            
             let rowsHTML = products.map((p, idx) => `
-                <tr class="border-b border-slate-700/50 text-sm">
-                    <td class="py-3 px-4 text-slate-300">${p.id}</td>
+                <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 text-sm">
+                    <td class="py-3 px-4 text-slate-300 font-mono">${p.id}</td>
                     <td class="py-3 px-4 font-semibold text-slate-100">${p.name}</td>
                     <td class="py-3 px-4 text-slate-400">${p.category || 'General'}</td>
-                    <td class="py-3 px-4 font-bold text-emerald-400">Rs. ${p.price}</td>
-                    <td class="py-3 px-4">${p.stock} units</td>
-                    <td class="py-3 px-4"><button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-rose-400 bg-rose-500/10 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></td>
+                    <td class="py-3 px-4 font-bold text-emerald-400">Rs. ${p.price.toLocaleString()}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${p.stock <= 2 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-slate-700 text-slate-300'}">
+                            ${p.stock} units
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 flex gap-2">
+                        <button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-rose-400 hover:text-rose-300 p-1.5 rounded bg-rose-500/10" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             `).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-bold text-slate-100">Cloud Inventory</h2>
-                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">Add Product</button>
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-100">Cloud Inventory & Stock Management</h2>
+                            <p class="text-xs text-slate-400">Manage store items and stock levels in real-time cloud</p>
+                        </div>
+                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white transition flex items-center gap-2 shadow-lg shadow-blue-900/30">
+                            <i class="fa-solid fa-plus"></i> Add New Product
+                        </button>
                     </div>
+
                     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead><tr class="border-b border-slate-700 text-xs text-slate-400 uppercase"><th class="pb-3 px-4">ID</th><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Category</th><th class="pb-3 px-4">Price</th><th class="pb-3 px-4">Stock</th><th class="pb-3 px-4">Action</th></tr></thead>
-                            <tbody>${rowsHTML}</tbody>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
+                                    <th class="pb-3 px-4">ID</th>
+                                    <th class="pb-3 px-4">Item Name</th>
+                                    <th class="pb-3 px-4">Category</th>
+                                    <th class="pb-3 px-4">Price</th>
+                                    <th class="pb-3 px-4">Stock</th>
+                                    <th class="pb-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${products.length === 0 ? '<tr><td colspan="6" class="text-center py-6 text-slate-500">No products in inventory</td></tr>' : rowsHTML}
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -371,20 +453,33 @@
         }
 
         function openAddProductModal() {
-            document.getElementById('modal-container').innerHTML = `
-                <div class="bg-slate-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 text-slate-100">
-                        <h2 class="font-bold text-lg mb-4">Add Product to Cloud</h2>
+            const modal = document.getElementById('modal-container');
+            modal.innerHTML = `
+                <div class="bg-slate-900/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl relative">
+                        <h2 class="font-bold text-lg mb-4">Add Product to Cloud Stock</h2>
                         <form onsubmit="saveNewProduct(event)" class="space-y-4">
-                            <div><label class="block text-xs text-slate-400 mb-1">Name</label><input type="text" id="add-p-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-xs text-slate-400 mb-1">Price</label><input type="number" id="add-p-price" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
-                                <div><label class="block text-xs text-slate-400 mb-1">Stock</label><input type="number" id="add-p-qty" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Product Name</label>
+                                <input type="text" id="add-p-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
                             </div>
-                            <div><label class="block text-xs text-slate-400 mb-1">Category</label><input type="text" id="add-p-cat" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Price (Rs.)</label>
+                                    <input type="number" id="add-p-price" required min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Quantity</label>
+                                    <input type="number" id="add-p-qty" required min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Category</label>
+                                <input type="text" id="add-p-cat" placeholder="e.g. Laptops, CCTV, Printers" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
+                            </div>
                             <div class="flex gap-2 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 py-2.5 rounded-lg text-sm">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 py-2.5 rounded-lg text-sm font-semibold">Save</button>
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold">Save Product</button>
                             </div>
                         </form>
                     </div>
@@ -401,75 +496,380 @@
                 stock: parseInt(document.getElementById('add-p-qty').value),
                 category: document.getElementById('add-p-cat').value || 'General'
             };
+
             const docRef = await db.collection('products').add(newProd);
             products.push({ firebaseId: docRef.id, ...newProd });
+
             closeModal();
             renderProducts();
-            showToast("Product added to cloud!");
+            showToast("Product added to cloud successfully!");
         }
 
         async function deleteProduct(firebaseId, idx) {
-            if(firebaseId) {
+            if (firebaseId) {
                 await db.collection('products').doc(firebaseId).delete();
             }
             products.splice(idx, 1);
             renderProducts();
-            showToast("Product deleted", "error");
+            showToast("Product removed from inventory", "error");
         }
 
         function renderCustomers() {
             const container = document.getElementById('tab-content');
+
+            let customerRows = customers.map((c, idx) => `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 text-sm">
+                    <td class="py-3 px-4 font-semibold text-slate-100">${c.name}</td>
+                    <td class="py-3 px-4 text-slate-400">${c.phone || 'N/A'}</td>
+                    <td class="py-3 px-4 font-bold ${c.creditBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}">
+                        Rs. ${c.creditBalance.toLocaleString()}
+                    </td>
+                    <td class="py-3 px-4">
+                        ${c.creditBalance > 0 ? `
+                            <button onclick="openCollectPaymentModal('${c.id}')" class="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-lg text-xs font-semibold transition border border-emerald-500/30">
+                                Collect Payment
+                            </button>
+                        ` : '<span class="text-xs text-slate-500">No Due</span>'}
+                    </td>
+                </tr>
+            `).join('');
+
             container.innerHTML = `
                 <div class="space-y-6">
-                    <h2 class="text-xl font-bold text-slate-100">Customer Dues</h2>
-                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
-                        <table class="w-full text-left">
-                            <thead><tr class="border-b border-slate-700 text-xs text-slate-400 uppercase"><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Credit Balance</th></tr></thead>
-                            <tbody>${customers.map(c => `<tr class="border-b border-slate-700/50 text-sm"><td class="py-3 px-4">${c.name}</td><td class="py-3 px-4">${c.phone||'N/A'}</td><td class="py-3 px-4 text-rose-400">Rs. ${c.creditBalance}</td></tr>`).join('')}</tbody>
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-100">Customer Dues & Credit Ledger</h2>
+                            <p class="text-xs text-slate-400">Track customer accounts and credit balances on cloud</p>
+                        </div>
+                        <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white transition flex items-center gap-2">
+                            <i class="fa-solid fa-user-plus"></i> Add New Customer
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
+                                    <th class="pb-3 px-4">Customer Name</th>
+                                    <th class="pb-3 px-4">Phone Number</th>
+                                    <th class="pb-3 px-4">Pending Credit Balance</th>
+                                    <th class="pb-3 px-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${customers.length === 0 ? '<tr><td colspan="4" class="text-center py-6 text-slate-500">No registered customers</td></tr>' : customerRows}
+                            </tbody>
                         </table>
                     </div>
                 </div>
             `;
         }
 
+        function openAddCustomerModal() {
+            const modal = document.getElementById('modal-container');
+            modal.innerHTML = `
+                <div class="bg-slate-900/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl relative">
+                        <h2 class="font-bold text-lg mb-4">Register Customer</h2>
+                        <form onsubmit="saveCustomer(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Customer Full Name</label>
+                                <input type="text" id="cust-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Phone Number</label>
+                                <input type="text" id="cust-phone" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold">Save Customer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveCustomer(e) {
+            e.preventDefault();
+            const newCust = {
+                id: 'c' + Date.now().toString().slice(-4),
+                name: document.getElementById('cust-name').value,
+                phone: document.getElementById('cust-phone').value,
+                creditBalance: 0
+            };
+
+            const docRef = await db.collection('customers').add(newCust);
+            customers.push({ firebaseId: docRef.id, ...newCust });
+
+            closeModal();
+            renderCustomers();
+            showToast("Customer registered successfully!");
+        }
+
+        function openCollectPaymentModal(custId) {
+            const customer = customers.find(c => c.id === custId);
+            if (!customer) return;
+
+            const modal = document.getElementById('modal-container');
+            modal.innerHTML = `
+                <div class="bg-slate-900/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl relative">
+                        <h2 class="font-bold text-lg mb-1">Collect Due Payment</h2>
+                        <p class="text-xs text-slate-400 mb-4">Customer: <strong class="text-slate-200">${customer.name}</strong> | Pending: <strong class="text-rose-400">Rs.${customer.creditBalance}</strong></p>
+                        
+                        <form onsubmit="processCreditPayment(event, '${customer.firebaseId}', '${customer.id}')" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Amount Received (Rs.)</label>
+                                <input type="number" id="pay-amount" max="${customer.creditBalance}" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm font-semibold text-emerald-400">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1.5 font-medium">Payment Received Via</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900/80 hover:border-emerald-500 cursor-pointer text-xs font-medium text-slate-200">
+                                        <input type="radio" name="collect-method" value="Cash" checked class="accent-emerald-500"> Cash
+                                    </label>
+                                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900/80 hover:border-purple-500 cursor-pointer text-xs font-medium text-slate-200">
+                                        <input type="radio" name="collect-method" value="Fonepay" class="accent-purple-500"> Fonepay / QR
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-lg text-sm font-semibold">Confirm Payment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function processCreditPayment(e, firebaseId, custId) {
+            e.preventDefault();
+            const customer = customers.find(c => c.id === custId);
+            const amount = parseFloat(document.getElementById('pay-amount').value);
+            const payMethod = document.querySelector('input[name="collect-method"]:checked')?.value || 'Cash';
+
+            if (customer && amount > 0) {
+                customer.creditBalance = Math.max(0, customer.creditBalance - amount);
+                if (firebaseId) {
+                    await db.collection('customers').doc(firebaseId).update({ creditBalance: customer.creditBalance });
+                }
+                
+                const recSale = {
+                    id: 'REC-' + Date.now().toString().slice(-6),
+                    date: new Date().toISOString(),
+                    customerName: customer.name + ' (Credit Payment)',
+                    customerId: customer.id,
+                    items: [{ name: 'Credit Ledger Payment', qty: 1, price: amount }],
+                    total: amount,
+                    paymentMethod: payMethod
+                };
+
+                const docRef = await db.collection('sales').add(recSale);
+                sales.unshift({ firebaseId: docRef.id, ...recSale });
+
+                closeModal();
+                renderCustomers();
+                showToast(`Collected Rs. ${amount} via ${payMethod}!`);
+            }
+        }
+
         function renderReports() {
             const container = document.getElementById('tab-content');
+
             const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
+            const cashRevenue = sales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
+            const fonepayRevenue = sales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
+
+            let salesRows = sales.map(s => `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 text-sm">
+                    <td class="py-3 px-4 text-slate-300 font-mono">${s.id}</td>
+                    <td class="py-3 px-4 text-slate-300">${new Date(s.date).toLocaleDateString()} ${new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td class="py-3 px-4 font-medium text-slate-100">${s.customerName}</td>
+                    <td class="py-3 px-4">
+                        ${s.paymentMethod === 'Fonepay' 
+                            ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20"><i class="fa-solid fa-qrcode"></i> Fonepay</span>'
+                            : '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-money-bill-wave"></i> Cash</span>'
+                        }
+                    </td>
+                    <td class="py-3 px-4 font-bold text-emerald-400">Rs. ${s.total.toLocaleString()}</td>
+                    <td class="py-3 px-4">
+                        <button onclick='showReceiptModal(${JSON.stringify(s)})' class="text-blue-400 hover:text-blue-300 text-xs font-medium px-2 py-1 bg-blue-500/10 rounded">
+                            View Invoice
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
             container.innerHTML = `
                 <div class="space-y-6">
-                    <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Total Revenue (Cloud)</p>
-                        <h3 class="text-2xl font-bold text-emerald-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Collection</p>
+                                <h3 class="text-2xl font-bold text-slate-100 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
+                                <i class="fa-solid fa-wallet text-xl"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-medium text-emerald-400 uppercase tracking-wider">Cash Collection</p>
+                                <h3 class="text-2xl font-bold text-emerald-300 mt-1">Rs. ${cashRevenue.toLocaleString()}</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                                <i class="fa-solid fa-money-bill-wave text-xl"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 p-5 rounded-2xl border border-purple-500/30 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-medium text-purple-400 uppercase tracking-wider">Fonepay Collection</p>
+                                <h3 class="text-2xl font-bold text-purple-300 mt-1">Rs. ${fonepayRevenue.toLocaleString()}</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400">
+                                <i class="fa-solid fa-qrcode text-xl"></i>
+                            </div>
+                        </div>
                     </div>
+
                     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
-                        <h2 class="font-bold text-lg text-slate-100 mb-4">Sales Log</h2>
-                        <table class="w-full text-left">
-                            <thead><tr class="border-b border-slate-700 text-xs text-slate-400 uppercase"><th class="pb-3 px-4">Invoice #</th><th class="pb-3 px-4">Customer</th><th class="pb-3 px-4">Total</th></tr></thead>
-                            <tbody>${sales.map(s => `<tr class="border-b border-slate-700/50 text-sm"><td class="py-3 px-4">${s.id}</td><td class="py-3 px-4">${s.customerName}</td><td class="py-3 px-4 text-emerald-400">Rs. ${s.total}</td></tr>`).join('')}</tbody>
-                        </table>
+                        <h2 class="font-bold text-lg text-slate-100 mb-4">Collection & Invoice Log (Cloud)</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
+                                        <th class="pb-3 px-4">Invoice #</th>
+                                        <th class="pb-3 px-4">Date & Time</th>
+                                        <th class="pb-3 px-4">Customer</th>
+                                        <th class="pb-3 px-4">Payment Method</th>
+                                        <th class="pb-3 px-4">Total Amount</th>
+                                        <th class="pb-3 px-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sales.length === 0 ? '<tr><td colspan="6" class="text-center py-6 text-slate-500">No sales recorded yet.</td></tr>' : salesRows}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
         function showReceiptModal(sale) {
-            document.getElementById('modal-container').innerHTML = `
-                <div class="bg-slate-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+            const modal = document.getElementById('modal-container');
+            const itemsList = sale.items.map(item => `
+                <div class="flex justify-between text-xs border-b border-slate-200 py-1 text-slate-700">
+                    <span>${item.name} x ${item.qty}</span>
+                    <span>Rs. ${(item.price * item.qty).toLocaleString()}</span>
+                </div>
+            `).join('');
+
+            modal.innerHTML = `
+                <div class="bg-slate-900/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-slate-800 shadow-2xl relative">
-                        <h2 class="font-black text-xl text-center mb-2">SB TECH</h2>
-                        <p class="text-xs text-center text-slate-500 mb-4">Invoice: ${sale.id}</p>
-                        <div class="text-xs mb-4">
-                            <p><strong>Customer:</strong> ${sale.customerName}</p>
-                            <p><strong>Total:</strong> Rs. ${sale.total}</p>
+                        <button onclick="closeModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+
+                        <div class="text-center mb-4 border-b border-slate-200 pb-3">
+                            <h2 class="font-black text-xl text-slate-900 tracking-wide">SB TECH</h2>
+                            <p class="text-xs text-slate-500">Damak-5, Jhapa Nepal | 023-575959</p>
+                            <p class="text-xs text-slate-500">VAT Reg: 600714930</p>
+                            <div class="mt-2 text-xs font-semibold text-slate-700">Invoice: ${sale.id}</div>
+                            <p class="text-[10px] text-slate-400">${new Date(sale.date).toLocaleString()}</p>
                         </div>
-                        <button onclick="closeModal()" class="w-full bg-slate-900 text-white py-2 rounded-lg text-xs">Close</button>
+
+                        <div class="text-xs mb-3 text-slate-600">
+                            <p><strong>Customer:</strong> ${sale.customerName}</p>
+                            <p><strong>Payment Mode:</strong> <span class="font-semibold text-slate-900">${sale.paymentMethod || 'Cash'}</span></p>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 pb-1 mb-1">Purchased Items</div>
+                            ${itemsList}
+                        </div>
+
+                        <div class="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-2 text-sm mb-6">
+                            <span>Total Amount:</span>
+                            <span class="text-emerald-700">Rs. ${sale.total.toLocaleString()}</span>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="printInvoice('${sale.id}')" class="flex-1 bg-slate-900 text-white py-2 rounded-lg text-xs font-medium hover:bg-slate-800 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-print"></i> Print Invoice
+                            </button>
+                            <button onclick="closeModal()" class="px-4 bg-slate-100 text-slate-600 py-2 rounded-lg text-xs font-medium hover:bg-slate-200">
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+        function printInvoice(saleId) {
+            const sale = sales.find(s => s.id === saleId);
+            if (!sale) return;
 
+            const printArea = document.getElementById('printable-area');
+            printArea.innerHTML = `
+                <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
+                    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px;">
+                        <h2 style="margin: 0; font-size: 20px;">SB TECH</h2>
+                        <p style="margin: 2px 0; font-size: 11px;">Damak-5, Jhapa Nepal</p>
+                        <p style="margin: 2px 0; font-size: 11px;">Phone: 023-575959 / 9806050500</p>
+                        <p style="margin: 2px 0; font-size: 11px;">VAT No: 600714930</p>
+                    </div>
+
+                    <p style="font-size: 11px; margin: 3px 0;"><strong>Invoice:</strong> ${sale.id}</p>
+                    <p style="font-size: 11px; margin: 3px 0;"><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}</p>
+                    <p style="font-size: 11px; margin: 3px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
+                    <p style="font-size: 11px; margin: 3px 0;"><strong>Payment Mode:</strong> ${sale.paymentMethod || 'Cash'}</p>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #000;">
+                                <th style="text-align: left; padding: 4px 0;">Item</th>
+                                <th style="text-align: center;">Qty</th>
+                                <th style="text-align: right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sale.items.map(item => `
+                                <tr>
+                                    <td style="padding: 4px 0;">${item.name}</td>
+                                    <td style="text-align: center;">${item.qty}</td>
+                                    <td style="text-align: right;">Rs. ${(item.price * item.qty).toLocaleString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 5px; text-align: right; font-size: 13px; font-weight: bold;">
+                        Grand Total: Rs. ${sale.total.toLocaleString()}
+                    </div>
+
+                    <div style="text-align: center; margin-top: 20px; font-size: 10px;">
+                        Thank you for choosing SB TECH!
+                    </div>
+                </div>
+            `;
+
+            window.print();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        // Initialize App on Window Load
         window.onload = function() {
             loadDataFromCloud();
         };
