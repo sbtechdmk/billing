@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SB TECH - Stock & Billing Software (Cloud)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase App & Firestore SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                color: #000;
+                background: #fff;
+            }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Navigation Header -->
+    <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/80 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20">
+                    SB
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg text-white tracking-wide">SB TECH <span class="text-xs text-emerald-400 font-normal">(Cloud Live)</span></h1>
+                    <p class="text-xs text-slate-400">Complete IT Support & Service | VAT: 600714930</p>
+                </div>
+            </div>
+
+            <nav class="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-700/60">
+                <button onclick="switchTab('pos')" id="tab-btn-pos" class="px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow-md">
+                    <i class="fa-solid fa-cart-shopping"></i> POS & Billing
+                </button>
+                <button onclick="switchTab('products')" id="tab-btn-products" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked"></i> Inventory
+                </button>
+                <button onclick="switchTab('customers')" id="tab-btn-customers" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+                    <i class="fa-solid fa-users"></i> Credit Ledger
+                </button>
+                <button onclick="switchTab('reports')" id="tab-btn-reports" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i> Daily Reports
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6" id="tab-content">
+        <div class="text-center py-20 text-slate-400">Loading Cloud Database...</div>
+    </main>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+    <div id="modal-container"></div>
+    <div id="printable-area" class="hidden p-6 max-w-md mx-auto"></div>
+
+    <script>
+        // ==========================================
+        // FIREBASE CONFIGURATION (Tapaiko aafnai API keys)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmvvmLLbDR7RLUDpIz2y3dsu9zXORdlr8",
+            authDomain: "sbtech-billing.firebaseapp.com",
+            projectId: "sbtech-billing",
+            storageBucket: "sbtech-billing.firebasestorage.app",
+            messagingSenderId: "330652833543",
+            appId: "1:330652833543:web:5adff75f4288b85f6e97a2",
+            measurementId: "G-C7P9R3KGLB"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let products = [];
+        let customers = [];
+        let sales = [];
+        let currentCart = [];
+        let activeTab = 'pos';
+
+        async function loadDataFromCloud() {
+            try {
+                const prodSnap = await db.collection('products').get();
+                if (!prodSnap.empty) {
+                    products = prodSnap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+                } else {
+                    products = [
+                        { id: '101', name: 'Dell Vostro Laptop 15', price: 68000, stock: 8, category: 'Laptops' },
+                        { id: '102', name: 'HP LaserJet Printer M108a', price: 21500, stock: 5, category: 'Printers' },
+                        { id: '103', name: 'Hikvision 2MP Outdoor CCTV', price: 3400, stock: 20, category: 'CCTV' },
+                        { id: '104', name: 'TP-Link Dual Band Router C6', price: 3800, stock: 12, category: 'Routers' },
+                        { id: '105', name: 'Cat6 Network Cable Box', price: 8500, stock: 4, category: 'Networking' }
+                    ];
+                    for(let p of products) {
+                        await db.collection('products').add(p);
+                    }
+                }
+
+                const custSnap = await db.collection('customers').get();
+                if (!custSnap.empty) {
+                    customers = custSnap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+                } else {
+                    customers = [
+                        { id: 'c1', name: 'Ram Bahadur', phone: '9801234567', creditBalance: 4500 },
+                        { id: 'c2', name: 'Sita Sharma', phone: '9842345678', creditBalance: 0 }
+                    ];
+                    for(let c of customers) {
+                        await db.collection('customers').add(c);
+                    }
+                }
+
+                const salesSnap = await db.collection('sales').orderBy('date', 'desc').get();
+                sales = salesSnap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+
+                renderPOS();
+            } catch (error) {
+                console.error("Error loading cloud data: ", error);
+                showToast("Cloud connection error!", "error");
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colorClass = type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white';
+            toast.className = `${colorClass} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.className = "px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-2";
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tab}`);
+            if (activeBtn) {
+                activeBtn.className = "px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow-md";
+            }
+
+            if (tab === 'pos') renderPOS();
+            else if (tab === 'products') renderProducts();
+            else if (tab === 'customers') renderCustomers();
+            else if (tab === 'reports') renderReports();
+        }
+
+        function renderPOS() {
+            const container = document.getElementById('tab-content');
+            
+            let itemsHTML = products.map(p => `
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/60 hover:border-blue-500/50 transition cursor-pointer flex flex-col justify-between" onclick="addToCart('${p.id}')">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-slate-100">${p.name}</h3>
+                            <span class="text-xs ${p.stock > 0 ? 'bg-slate-700 text-slate-300' : 'bg-rose-950 text-rose-300'} px-2 py-0.5 rounded-full">Stock: ${p.stock}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-2">Category: ${p.category || 'General'}</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/50">
+                        <span class="text-lg font-bold text-emerald-400">Rs. ${p.price.toLocaleString()}</span>
+                        <button class="bg-blue-600/35 hover:bg-blue-600 text-blue-300 hover:text-white px-3 py-1 rounded-lg text-xs font-medium transition">Add</button>
+                    </div>
+                </div>
+            `).join('');
+
+            let cartHTML = currentCart.map((item, idx) => `
+                <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/40 text-sm">
+                    <div class="flex-1">
+                        <div class="font-medium text-slate-200">${item.name}</div>
+                        <div class="text-xs text-slate-400">Rs. ${item.price} x ${item.qty} = Rs. ${item.price * item.qty}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center bg-slate-800 rounded-lg border border-slate-700">
+                            <button onclick="updateCartQty(${idx}, -1)" class="w-7 h-7 flex items-center justify-center text-slate-300">-</button>
+                            <span class="w-8 text-center text-xs font-semibold">${item.qty}</span>
+                            <button onclick="updateCartQty(${idx}, 1)" class="w-7 h-7 flex items-center justify-center text-slate-300">+</button>
+                        </div>
+                        <button onclick="removeFromCart(${idx})" class="text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+
+            const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            container.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" onkeyup="filterPOSProducts(this.value)" placeholder="Search products..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 text-sm">
+                        </div>
+                        <div id="pos-product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            ${itemsHTML}
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-24">
+                        <div>
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
+                                <h2 class="font-bold text-lg text-slate-100">Current Order</h2>
+                                <button onclick="clearCart()" class="text-xs text-rose-400">Clear</button>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-xs text-slate-400 mb-1">Customer</label>
+                                <select id="cart-customer" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-200">
+                                    <option value="">Walk-in Customer</option>
+                                    ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'No Phone'})</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                ${currentCart.length === 0 ? '<div class="text-center py-8 text-slate-500 text-sm">Cart is empty</div>' : cartHTML}
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-700 space-y-3">
+                            <div class="flex justify-between text-lg font-bold">
+                                <span class="text-slate-300">Grand Total:</span>
+                                <span class="text-emerald-400">Rs. ${subtotal.toLocaleString()}</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900 text-xs text-slate-200 cursor-pointer">
+                                    <input type="radio" name="payment-method" value="Cash" checked> Cash
+                                </label>
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-slate-700 bg-slate-900 text-xs text-slate-200 cursor-pointer">
+                                    <input type="radio" name="payment-method" value="Fonepay"> Fonepay
+                                </label>
+                            </div>
+
+                            <button onclick="processCheckout()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-semibold text-white rounded-xl shadow-lg">Complete Sale</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addToCart(prodId) {
+            const product = products.find(p => p.id === prodId);
+            if (!product || product.stock <= 0) {
+                showToast("Out of stock!", "error");
+                return;
+            }
+            const existing = currentCart.find(item => item.id === prodId);
+            if (existing) {
+                if (existing.qty + 1 > product.stock) {
+                    showToast("Stock limit reached!", "error");
+                    return;
+                }
+                existing.qty += 1;
+            } else {
+                currentCart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+            }
+            renderPOS();
+        }
+
+        function updateCartQty(idx, change) {
+            const item = currentCart[idx];
+            const product = products.find(p => p.id === item.id);
+            const newQty = item.qty + change;
+            if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
+            if (product && newQty > product.stock) { showToast("Stock limit reached!", "error"); return; }
+            item.qty = newQty;
+            renderPOS();
+        }
+
+        function removeFromCart(idx) { currentCart.splice(idx, 1); renderPOS(); }
+        function clearCart() { currentCart = []; renderPOS(); }
+
+        function filterPOSProducts(query) {
+            const q = query.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+            document.getElementById('pos-product-grid').innerHTML = filtered.map(p => `
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-blue-500 transition cursor-pointer flex flex-col justify-between" onclick="addToCart('${p.id}')">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-slate-100">${p.name}</h3>
+                            <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Stock: ${p.stock}</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/50">
+                        <span class="text-lg font-bold text-emerald-400">Rs. ${p.price}</span>
+                        <button class="bg-blue-600/35 px-3 py-1 rounded-lg text-xs text-blue-300">Add</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function processCheckout() {
+            if (currentCart.length === 0) { showToast("Cart is empty!", "error"); return; }
+            const customerId = document.getElementById('cart-customer').value;
+            const customerObj = customers.find(c => c.id === customerId);
+            const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'Cash';
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            const sale = {
+                id: 'INV-' + Date.now().toString().slice(-6),
+                date: new Date().toISOString(),
+                customerName: customerObj ? customerObj.name : 'Walk-in Customer',
+                customerId: customerId || null,
+                items: [...currentCart],
+                total: total,
+                paymentMethod: paymentMethod
+            };
+
+            for(let cartItem of currentCart) {
+                const prod = products.find(p => p.id === cartItem.id);
+                if(prod) {
+                    prod.stock = Math.max(0, prod.stock - cartItem.qty);
+                    if(prod.firebaseId) {
+                        await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                    }
+                }
+            }
+
+            const docRef = await db.collection('sales').add(sale);
+            sales.unshift({ firebaseId: docRef.id, ...sale });
+
+            showToast("Sale completed & saved to Cloud!");
+            showReceiptModal(sale);
+            clearCart();
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('tab-content');
+            let rowsHTML = products.map((p, idx) => `
+                <tr class="border-b border-slate-700/50 text-sm">
+                    <td class="py-3 px-4 text-slate-300">${p.id}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-100">${p.name}</td>
+                    <td class="py-3 px-4 text-slate-400">${p.category || 'General'}</td>
+                    <td class="py-3 px-4 font-bold text-emerald-400">Rs. ${p.price}</td>
+                    <td class="py-3 px-4">${p.stock} units</td>
+                    <td class="py-3 px-4"><button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-rose-400 bg-rose-500/10 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-100">Cloud Inventory</h2>
+                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">Add Product</button>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-slate-700 text-xs text-slate-400 uppercase"><th class="pb-3 px-4">ID</th><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Category</th><th class="pb-3 px-4">Price</th><th class="pb-3 px-4">Stock</th><th class="pb-3 px-4">Action</th></tr></thead>
+                            <tbody>${rowsHTML}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddProductModal() {
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-slate-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 text-slate-100">
+                        <h2 class="font-bold text-lg mb-4">Add Product to Cloud</h2>
+                        <form onsubmit="saveNewProduct(event)" class="space-y-4">
+                            <div><label class="block text-xs text-slate-400 mb-1">Name</label><input type="text" id="add-p-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="block text-xs text-slate-400 mb-1">Price</label><input type="number" id="add-p-price" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
+                                <div><label class="block text-xs text-slate-400 mb-1">Stock</label><input type="number" id="add-p-qty" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
+                            </div>
+                            <div><label class="block text-xs text-slate-400 mb-1">Category</label><input type="text" id="add-p-cat" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 py-2.5 rounded-lg text-sm font-semibold">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveNewProduct(e) {
+            e.preventDefault();
+            const newProd = {
+                id: (100 + products.length + 1).toString(),
+                name: document.getElementById('add-p-name').value,
+                price: parseFloat(document.getElementById('add-p-price').value),
+                stock: parseInt(document.getElementById('add-p-qty').value),
+                category: document.getElementById('add-p-cat').value || 'General'
+            };
+            const docRef = await db.collection('products').add(newProd);
+            products.push({ firebaseId: docRef.id, ...newProd });
+            closeModal();
+            renderProducts();
+            showToast("Product added to cloud!");
+        }
+
+        async function deleteProduct(firebaseId, idx) {
+            if(firebaseId) {
+                await db.collection('products').doc(firebaseId).delete();
+            }
+            products.splice(idx, 1);
+            renderProducts();
+            showToast("Product deleted", "error");
+        }
+
+        function renderCustomers() {
+            const container = document.getElementById('tab-content');
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <h2 class="text-xl font-bold text-slate-100">Customer Dues</h2>
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-slate-700 text-xs text-slate-400 uppercase"><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Credit Balance</th></tr></thead>
+                            <tbody>${customers.map(c => `<tr class="border-b border-slate-700/50 text-sm"><td class="py-3 px-4">${c.name}</td><td class="py-3 px-4">${c.phone||'N/A'}</td><td class="py-3 px-4 text-rose-400">Rs. ${c.creditBalance}</td></tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderReports() {
+            const container = document.getElementById('tab-content');
+            const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+                        <p class="text-xs text-slate-400 uppercase">Total Revenue (Cloud)</p>
+                        <h3 class="text-2xl font-bold text-emerald-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                        <h2 class="font-bold text-lg text-slate-100 mb-4">Sales Log</h2>
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-slate-700 text-xs text-slate-400 uppercase"><th class="pb-3 px-4">Invoice #</th><th class="pb-3 px-4">Customer</th><th class="pb-3 px-4">Total</th></tr></thead>
+                            <tbody>${sales.map(s => `<tr class="border-b border-slate-700/50 text-sm"><td class="py-3 px-4">${s.id}</td><td class="py-3 px-4">${s.customerName}</td><td class="py-3 px-4 text-emerald-400">Rs. ${s.total}</td></tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showReceiptModal(sale) {
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-slate-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-slate-800 shadow-2xl relative">
+                        <h2 class="font-black text-xl text-center mb-2">SB TECH</h2>
+                        <p class="text-xs text-center text-slate-500 mb-4">Invoice: ${sale.id}</p>
+                        <div class="text-xs mb-4">
+                            <p><strong>Customer:</strong> ${sale.customerName}</p>
+                            <p><strong>Total:</strong> Rs. ${sale.total}</p>
+                        </div>
+                        <button onclick="closeModal()" class="w-full bg-slate-900 text-white py-2 rounded-lg text-xs">Close</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+
+        window.onload = function() {
+            loadDataFromCloud();
+        };
+    </script>
+</body>
+</html>
