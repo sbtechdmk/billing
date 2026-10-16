@@ -1,385 +1,374 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SB TECH - Advanced Computer Shop Management System</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f6fe',
-                            100: '#ddeafb',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <title>SB TECH - Cloud Billing & Stock Management</title>
+    
+    <!-- Static Compiled Tailwind CSS (CSP Safe) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Firebase App, Auth & Firestore SDK (Compat Mode) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .font-mono-code { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Custom scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
-
-        /* Thermal & A4 Invoice Printable Styles */
-        @media print {
-            body * { visibility: hidden !important; }
-            #printable-area, #printable-area * { visibility: visible !important; }
-            #printable-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                color: #000 !important;
-                background: #fff !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .no-print { display: none !important; }
-        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
 
-    <header class="bg-slate-900/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-            <!-- Brand Info -->
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20 ring-2 ring-blue-400/30">
-                    SB
+    <!-- App Container -->
+    <div id="app-container" class="flex-1 flex flex-col">
+        <!-- Auth Screen / Loading -->
+        <div id="auth-screen" class="flex-1 flex items-center justify-center p-4">
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-8 shadow-2xl">
+                <div class="text-center mb-6">
+                    <img id="app-logo-login" class="w-20 h-20 mx-auto rounded-full mb-3 shadow-lg object-cover" alt="SB TECH Logo">
+                    <h1 class="font-extrabold text-xl text-white">SB TECH Cloud Login</h1>
+                    <p class="text-xs text-gray-400 mt-1">Complete IT Support & Service</p>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="font-extrabold text-lg text-white tracking-wide">SB TECH</h1>
-                        <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-emerald-500/30">PRO SHOP</span>
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Email Address</label>
+                        <input type="email" id="login-email" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500" placeholder="admin@sbtech.com.np">
                     </div>
-                    <p class="text-xs text-slate-400 flex items-center gap-2">
-                        <span><i class="fa-solid fa-location-dot text-rose-400"></i> Damak-5, Jhapa</span>
-                        <span class="hidden sm:inline">•</span>
-                        <span class="hidden sm:inline">VAT: 600714930</span>
-                    </p>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Password</label>
+                        <input type="password" id="login-password" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 font-semibold text-white rounded-xl shadow-lg transition">Login to System</button>
+                </form>
+                <div class="mt-6 pt-4 border-t border-gray-700 text-center text-xs text-gray-400">
+                    <p class="font-semibold text-gray-300 mb-1">Default Logins:</p>
+                    <p>Admin: admin@sbtech.com.np / admin123</p>
+                    <p>Accountant: account@sbtech.com.np / account123</p>
+                    <p>Teller: teller@sbtech.com.np / teller123</p>
                 </div>
             </div>
-
-            <!-- Navigation Bar -->
-            <nav class="flex items-center gap-1 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto max-w-full">
-                <button onclick="switchTab('pos')" id="tab-btn-pos" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap bg-blue-600 text-white shadow-md shadow-blue-600/30">
-                    <i class="fa-solid fa-cart-shopping"></i> POS Billing
-                </button>
-                <button onclick="switchTab('products')" id="tab-btn-products" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-boxes-stacked"></i> Inventory
-                </button>
-                <button onclick="switchTab('repairs')" id="tab-btn-repairs" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition flex items-center gap-2 whitespace-nowrap relative">
-                    <i class="fa-solid fa-screwdriver-wrench"></i> Repairs & Service
-                    <span id="pending-repairs-badge" class="bg-amber-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">0</span>
-                </button>
-                <button onclick="switchTab('customers')" id="tab-btn-customers" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-book-bookmark"></i> Credit Ledger
-                </button>
-                <button onclick="switchTab('reports')" id="tab-btn-reports" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-chart-pie"></i> Daily Reports
-                </button>
-            </nav>
         </div>
-    </header>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6" id="tab-content">
-        <!-- Tab Views dynamically rendered via JS -->
-    </main>
+        <!-- Main Dashboard (Hidden until login) -->
+        <div id="main-dashboard" class="hidden flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
+                <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <img id="app-logo-header" class="w-10 h-10 rounded-full object-cover shadow-md" alt="SB TECH Logo">
+                        <div>
+                            <h1 class="font-extrabold text-sm text-white tracking-wide flex items-center gap-2">
+                                SB TECH <span id="role-badge" class="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full"></span>
+                            </h1>
+                            <p class="text-xs text-gray-400">Damak-5, Jhapa | VAT: 600714930</p>
+                        </div>
+                    </div>
 
-    <!-- Toast Notifications Floating Stack -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+                    <nav id="nav-tabs" class="flex items-center gap-1 bg-gray-900 p-1 rounded-xl border border-gray-700">
+                        <!-- Dynamically rendered based on role -->
+                    </nav>
 
-    <!-- Dynamic Modal Overlay Root -->
+                    <div class="flex items-center gap-3">
+                        <span id="user-email-display" class="text-xs text-gray-300 hidden sm:inline"></span>
+                        <button onclick="logout()" class="px-3 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white text-xs font-semibold rounded-lg transition border border-red-500/30">
+                            <i class="fa-solid fa-right-from-bracket"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6" id="tab-content">
+                <!-- Content injected here -->
+            </main>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
     <div id="modal-container"></div>
 
-    <!-- Hidden Dedicated Thermal Print Sheet -->
-    <div id="printable-area" class="hidden"></div>
-
     <script>
-        // Initial Mock Master Data for Tech Shop
-        const initialProducts = [
-            { id: '101', name: 'Dell Vostro 15 3520 (i5 12th Gen / 8GB / 512GB)', price: 68000, stock: 6, category: 'Laptops', serials: 'SN-DEL-092, SN-DEL-093, SN-DEL-094' },
-            { id: '102', name: 'HP LaserJet Pro M108a Printer', price: 21500, stock: 4, category: 'Printers', serials: 'CN-HPP-4411, CN-HPP-4412' },
-            { id: '103', name: 'Hikvision 2MP Outdoor ColorVu CCTV Camera', price: 3400, stock: 18, category: 'CCTV & Security', serials: 'HK-CAM-9011' },
-            { id: '104', name: 'TP-Link Archer C6 AC1200 Dual Band Router', price: 3800, stock: 12, category: 'Networking', serials: 'S/N: 2210098731' },
-            { id: '105', name: 'D-Link Cat6 UTP Network Cable (305m Roll)', price: 8500, stock: 3, category: 'Networking', serials: 'N/A' },
-            { id: '106', name: 'Samsung 24" IPS FHD Monitor (75Hz)', price: 17500, stock: 5, category: 'Monitors', serials: 'SAM-MON-7801' },
-            { id: '107', name: 'Logitech MK215 Wireless Combo Mouse Keyboard', price: 2400, stock: 15, category: 'Accessories', serials: 'N/A' }
-        ];
+        // Logo Image Placeholder (Local/Embedded)
+        const LOGO_SRC = "logo.jpeg";
 
-        const initialCustomers = [
-            { id: 'c1', name: 'Ram Bahadur Thapa', phone: '9801234567', address: 'Damak-6, Jhapa', creditBalance: 4500 },
-            { id: 'c2', name: 'Sita Sharma (Everest School)', phone: '9842345678', address: 'Damak-5, Jhapa', creditBalance: 12500 },
-            { id: 'c3', name: 'Hari Prasad Dahal', phone: '9812398765', address: 'Urlabari-3, Morang', creditBalance: 0 }
-        ];
+        // ==========================================
+        // FIREBASE CONFIGURATION
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmvvmLLbDR7RLUDpIz2y3dsu9zXORdlr8",
+            authDomain: "sbtech-billing.firebaseapp.com",
+            projectId: "sbtech-billing",
+            storageBucket: "sbtech-billing.firebasestorage.app",
+            messagingSenderId: "330652833543",
+            appId: "1:330652833543:web:5adff75f4288b85f6e97a2",
+            measurementId: "G-C7P9R3KGLB"
+        };
 
-        const initialRepairs = [
-            { id: 'REP-1001', customerName: 'Suman Rai', phone: '9804561230', device: 'Acer Aspire 5 Laptop', serialNo: 'NXAT3SI001', complaint: 'No Display / Motherboard short circuit', estimatedCost: 4500, status: 'In Repair', date: new Date(Date.now() - 86400000 * 2).toISOString() },
-            { id: 'REP-1002', customerName: 'Gita Adhikari', phone: '9816655443', device: 'Epson L3110 Printer', serialNo: 'EP-99882', complaint: 'Red light blinking / Paper jam issue', estimatedCost: 1200, status: 'Pending', date: new Date(Date.now() - 86400000).toISOString() }
-        ];
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        const initialSales = [
-            {
-                id: 'INV-882101',
-                date: new Date(Date.now() - 3600000 * 4).toISOString(),
-                customerName: 'Hari Prasad Dahal',
-                customerId: 'c3',
-                items: [{ id: '104', name: 'TP-Link Archer C6 AC1200 Dual Band Router', qty: 1, price: 3800 }],
-                subtotal: 3800,
-                discount: 0,
-                total: 3800,
-                paymentMethod: 'Fonepay'
-            }
-        ];
-
-        // State variables initialized from LocalStorage
-        let products = JSON.parse(localStorage.getItem('sbtech_products')) || initialProducts;
-        let customers = JSON.parse(localStorage.getItem('sbtech_customers')) || initialCustomers;
-        let repairs = JSON.parse(localStorage.getItem('sbtech_repairs')) || initialRepairs;
-        let sales = JSON.parse(localStorage.getItem('sbtech_sales')) || initialSales;
-
+        let currentUser = null;
+        let userRole = 'teller';
+        let products = [];
+        let customers = [];
+        let sales = [];
         let currentCart = [];
-        let cartDiscount = 0;
         let activeTab = 'pos';
 
-        // Save State Helper
-        function saveData() {
-            localStorage.setItem('sbtech_products', JSON.stringify(products));
-            localStorage.setItem('sbtech_customers', JSON.stringify(customers));
-            localStorage.setItem('sbtech_repairs', JSON.stringify(repairs));
-            localStorage.setItem('sbtech_sales', JSON.stringify(sales));
-            updatePendingBadge();
+        document.getElementById('app-logo-login').src = LOGO_SRC;
+        document.getElementById('app-logo-header').src = LOGO_SRC;
+
+        auth.onAuthStateChanged(async function(user) {
+            if (user) {
+                currentUser = user;
+                await fetchUserRole(user.email);
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-dashboard').classList.remove('hidden');
+                document.getElementById('user-email-display').innerText = user.email;
+                document.getElementById('role-badge').innerText = userRole.toUpperCase();
+                
+                setupNavigation();
+                await loadCloudData();
+            } else {
+                currentUser = null;
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-dashboard').classList.add('hidden');
+            }
+        });
+
+        async function fetchUserRole(email) {
+            try {
+                const snap = await db.collection('users').where('email', '==', email).get();
+                if (!snap.empty) {
+                    userRole = snap.docs[0].data().role || 'teller';
+                } else {
+                    await seedDefaultUsers();
+                    const retrySnap = await db.collection('users').where('email', '==', email).get();
+                    if (!retrySnap.empty) {
+                        userRole = retrySnap.docs[0].data().role || 'teller';
+                    } else {
+                        userRole = email.includes('admin') ? 'admin' : (email.includes('account') ? 'accountant' : 'teller');
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching role:", e);
+                userRole = 'admin';
+            }
         }
 
-        function updatePendingBadge() {
-            const pendingCount = repairs.filter(r => r.status === 'Pending' || r.status === 'In Repair').length;
-            const badge = document.getElementById('pending-repairs-badge');
-            if (badge) {
-                if (pendingCount > 0) {
-                    badge.innerText = pendingCount;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
+        async function seedDefaultUsers() {
+            const defaultUsers = [
+                { email: 'admin@sbtech.com.np', role: 'admin', name: 'Administrator' },
+                { email: 'account@sbtech.com.np', role: 'accountant', name: 'Accountant' },
+                { email: 'teller@sbtech.com.np', role: 'teller', name: 'Billing Teller' }
+            ];
+            for (let u of defaultUsers) {
+                const exist = await db.collection('users').where('email', '==', u.email).get();
+                if (exist.empty) {
+                    await db.collection('users').add(u);
                 }
             }
         }
 
-        // Toast Feedback System
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+                showToast("Login Successful!");
+            } catch (err) {
+                try {
+                    await auth.createUserWithEmailAndPassword(email, pass);
+                    showToast("Account created & logged in!");
+                } catch (createErr) {
+                    showToast("Login failed: " + err.message, "error");
+                }
+            }
+        }
+
+        function logout() {
+            auth.signOut();
+            showToast("Logged out successfully");
+        }
+
+        function setupNavigation() {
+            const nav = document.getElementById('nav-tabs');
+            let html = '';
+
+            if (userRole === 'admin' || userRole === 'teller') {
+                html += `<button onclick="switchTab('pos')" id="tab-btn-pos" class="px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow-md"><i class="fa-solid fa-cart-shopping"></i> POS & Billing</button>`;
+            }
+            if (userRole === 'admin') {
+                html += `<button onclick="switchTab('products')" id="tab-btn-products" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i> Inventory</button>`;
+            }
+            if (userRole === 'admin' || userRole === 'accountant') {
+                html += `<button onclick="switchTab('customers')" id="tab-btn-customers" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-users"></i> Credit Ledger</button>`;
+                html += `<button onclick="switchTab('statements')" id="tab-btn-statements" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar"></i> Statements</button>`;
+                html += `<button onclick="switchTab('reports')" id="tab-btn-reports" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-chart-line"></i> Reports</button>`;
+            }
+
+            nav.innerHTML = html;
+            if (userRole === 'accountant') switchTab('statements');
+            else switchTab('pos');
+        }
+
+        async function loadCloudData() {
+            try {
+                const prodSnap = await db.collection('products').get();
+                if (!prodSnap.empty) {
+                    products = prodSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
+                } else {
+                    products = [
+                        { id: '101', name: 'Dell Vostro Laptop 15', price: 68000, stock: 8, category: 'Laptops' },
+                        { id: '102', name: 'HP LaserJet Printer M108a', price: 21500, stock: 5, category: 'Printers' },
+                        { id: '103', name: 'Hikvision 2MP Outdoor CCTV', price: 3400, stock: 20, category: 'CCTV' },
+                        { id: '104', name: 'TP-Link Dual Band Router C6', price: 3800, stock: 12, category: 'Routers' },
+                        { id: '105', name: 'Cat6 Network Cable Box', price: 8500, stock: 4, category: 'Networking' }
+                    ];
+                    for (let p of products) await db.collection('products').add(p);
+                }
+
+                const custSnap = await db.collection('customers').get();
+                if (!custSnap.empty) {
+                    customers = custSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
+                } else {
+                    customers = [
+                        { id: 'c1', name: 'Ram Bahadur', phone: '9801234567', creditBalance: 4500 },
+                        { id: 'c2', name: 'Sita Sharma', phone: '9842345678', creditBalance: 0 }
+                    ];
+                    for (let c of customers) await db.collection('customers').add(c);
+                }
+
+                const salesSnap = await db.collection('sales').orderBy('date', 'desc').get();
+                sales = salesSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
+
+                if (userRole === 'accountant') switchTab('statements');
+                else renderPOS();
+            } catch (err) {
+                console.error("Error loading data:", err);
+                showToast("Error loading cloud data", "error");
+            }
+        }
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            const isSuccess = type === 'success';
-            const bgColor = isSuccess ? 'bg-emerald-600' : (type === 'warning' ? 'bg-amber-600' : 'bg-rose-600');
-            const icon = isSuccess ? 'fa-circle-check' : (type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-xmark');
-            
-            toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2.5 transform transition-all duration-300 translate-y-2 pointer-events-auto`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${message}</span>`;
-            
+            const colorClass = type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white';
+            toast.className = `${colorClass} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ${message}`;
             container.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-4');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => toast.remove(), 4000);
         }
 
-        // Navigation Tab Switching Logic
         function switchTab(tab) {
             activeTab = tab;
             document.querySelectorAll('nav button').forEach(btn => {
-                btn.className = "px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition flex items-center gap-2 whitespace-nowrap relative";
+                btn.className = "px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2";
             });
             const activeBtn = document.getElementById(`tab-btn-${tab}`);
             if (activeBtn) {
-                activeBtn.className = "px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap bg-blue-600 text-white shadow-md shadow-blue-600/30 relative";
+                activeBtn.className = "px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow-md";
             }
 
             if (tab === 'pos') renderPOS();
             else if (tab === 'products') renderProducts();
-            else if (tab === 'repairs') renderRepairs();
             else if (tab === 'customers') renderCustomers();
+            else if (tab === 'statements') renderStatements();
             else if (tab === 'reports') renderReports();
-            
-            updatePendingBadge();
         }
 
+        // --- POS & TELLER ENTRY ---
         function renderPOS() {
             const container = document.getElementById('tab-content');
-            
             let itemsHTML = products.map(p => `
-                <div class="bg-slate-900 border border-slate-800/80 hover:border-blue-500/50 rounded-2xl p-4 transition-all hover:shadow-xl hover:shadow-blue-950/20 flex flex-col justify-between group" onclick="addToCart('${p.id}')">
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 hover:border-blue-500 transition cursor-pointer flex flex-col justify-between" onclick="addToCart('${p.id}')">
                     <div>
-                        <div class="flex justify-between items-start gap-2 mb-2">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-800/40">${p.category || 'General'}</span>
-                            <span class="text-xs font-semibold ${p.stock > 2 ? 'text-slate-400' : 'text-amber-400 font-bold'}">
-                                ${p.stock > 0 ? `<i class="fa-solid fa-box text-[10px]"></i> ${p.stock} in stock` : '<span class="text-rose-400"><i class="fa-solid fa-ban"></i> Out of Stock</span>'}
-                            </span>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-gray-100">${p.name}</h3>
+                            <span class="text-xs ${p.stock > 0 ? 'bg-gray-700 text-gray-300' : 'bg-red-900 text-red-300'} px-2 py-0.5 rounded-full">Stock: ${p.stock}</span>
                         </div>
-                        <h3 class="font-semibold text-sm text-slate-100 group-hover:text-blue-300 transition-colors line-clamp-2">${p.name}</h3>
-                        ${p.serials && p.serials !== 'N/A' ? `<p class="text-[11px] font-mono-code text-slate-500 mt-1 truncate" title="${p.serials}"><i class="fa-solid fa-barcode text-[10px]"></i> ${p.serials}</p>` : ''}
+                        <p class="text-xs text-gray-400 mb-2">Category: ${p.category || 'General'}</p>
                     </div>
-                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/60">
-                        <div>
-                            <span class="text-[10px] text-slate-400 block">NPR Price</span>
-                            <span class="text-base font-extrabold text-emerald-400">Rs. ${p.price.toLocaleString()}</span>
-                        </div>
-                        <button class="bg-blue-600/20 group-hover:bg-blue-600 text-blue-300 group-hover:text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-plus font-bold"></i> Add
-                        </button>
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-700">
+                        <span class="text-lg font-bold text-green-400">Rs. ${p.price.toLocaleString()}</span>
+                        <button class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium transition"><i class="fa-solid fa-plus"></i> Add</button>
                     </div>
                 </div>
             `).join('');
 
             let cartHTML = currentCart.map((item, idx) => `
-                <div class="flex items-center justify-between p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 text-xs">
-                    <div class="flex-1 pr-2">
-                        <div class="font-semibold text-slate-200 line-clamp-1">${item.name}</div>
-                        <div class="text-slate-400 text-[11px] mt-0.5">Rs. ${item.price.toLocaleString()} × ${item.qty} = <strong class="text-emerald-400">Rs. ${(item.price * item.qty).toLocaleString()}</strong></div>
+                <div class="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-gray-700 text-sm">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-200">${item.name}</div>
+                        <div class="text-xs text-gray-400">Rs. ${item.price} x ${item.qty} = Rs. ${item.price * item.qty}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="flex items-center bg-slate-900 rounded-lg border border-slate-700/80 overflow-hidden">
-                            <button onclick="updateCartQty(${idx}, -1)" class="w-6 h-6 flex items-center justify-center text-slate-300 hover:bg-slate-800 transition">-</button>
-                            <span class="w-7 text-center font-bold text-slate-100 text-xs">${item.qty}</span>
-                            <button onclick="updateCartQty(${idx}, 1)" class="w-6 h-6 flex items-center justify-center text-slate-300 hover:bg-slate-800 transition">+</button>
+                        <div class="flex items-center bg-gray-800 rounded-lg border border-gray-700">
+                            <button onclick="updateCartQty(${idx}, -1)" class="w-7 h-7 flex items-center justify-center text-gray-300">-</button>
+                            <span class="w-8 text-center text-xs font-semibold">${item.qty}</span>
+                            <button onclick="updateCartQty(${idx}, 1)" class="w-7 h-7 flex items-center justify-center text-gray-300">+</button>
                         </div>
-                        <button onclick="removeFromCart(${idx})" class="text-slate-500 hover:text-rose-400 p-1 transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        <button onclick="removeFromCart(${idx})" class="text-red-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             `).join('');
 
-            const itemsSubtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const grandTotal = Math.max(0, itemsSubtotal - cartDiscount);
+            const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
             container.innerHTML = `
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <!-- Left: Inventory Browser -->
-                    <div class="lg:col-span-7 xl:col-span-8 space-y-4">
-                        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                            <div class="relative w-full sm:w-80">
-                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" id="pos-search" onkeyup="filterPOSProducts(this.value)" placeholder="Search products, serials, category..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-slate-400 w-full sm:w-auto overflow-x-auto">
-                                <span class="font-semibold text-slate-300">Filter:</span>
-                                <button onclick="filterPOSCategory('all')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">All</button>
-                                <button onclick="filterPOSCategory('Laptops')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">Laptops</button>
-                                <button onclick="filterPOSCategory('CCTV & Security')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">CCTV</button>
-                                <button onclick="filterPOSCategory('Networking')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">Networking</button>
-                            </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl border border-gray-700">
+                            <span class="text-xs font-semibold text-blue-400 flex items-center gap-2">
+                                <img src="${LOGO_SRC}" class="w-5 h-5 rounded-full object-cover" alt="Logo"> Teller Entry Mode (${currentUser.email})
+                            </span>
+                            <span class="text-xs text-gray-400">Products available: ${products.length}</span>
                         </div>
-
-                        <div id="pos-product-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[calc(100vh-210px)] overflow-y-auto pr-1">
-                            ${itemsHTML}
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" onkeyup="filterPOSProducts(this.value)" placeholder="Search products..." class="w-full bg-gray-800 border border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-gray-100 text-sm">
                         </div>
+                        <div id="pos-product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">${itemsHTML}</div>
                     </div>
 
-                    <!-- Right: Checkout Cart Panel -->
-                    <div class="lg:col-span-5 xl:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between h-fit lg:sticky lg:top-20 shadow-2xl">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-24">
                         <div>
-                            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
-                                <h2 class="font-bold text-base text-slate-100 flex items-center gap-2">
-                                    <i class="fa-solid fa-receipt text-blue-500"></i> Active Sales Cart
-                                </h2>
-                                <button onclick="clearCart()" class="text-xs text-rose-400 hover:underline flex items-center gap-1">
-                                    <i class="fa-solid fa-rotate-right"></i> Reset Cart
-                                </button>
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+                                <h2 class="font-bold text-lg text-gray-100">Current Order</h2>
+                                <button onclick="clearCart()" class="text-xs text-red-400">Clear</button>
                             </div>
-
-                            <!-- Customer Picker -->
-                            <div class="mb-4 space-y-1">
-                                <label class="block text-xs font-semibold text-slate-400">Customer (ग्राहक)</label>
-                                <select id="cart-customer" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500">
-                                    <option value="">Walk-in Customer (नगदी ग्राहक)</option>
-                                    ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'No phone'}) - Credit: Rs. ${c.creditBalance}</option>`).join('')}
+                            <div class="mb-4">
+                                <label class="block text-xs text-gray-400 mb-1">Customer</label>
+                                <select id="cart-customer" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
+                                    <option value="">Walk-in Customer</option>
+                                    ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'N/A'})</option>`).join('')}
                                 </select>
                             </div>
-
-                            <!-- Cart Items List -->
-                            <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1 mb-4">
-                                ${currentCart.length === 0 ? `
-                                    <div class="text-center py-10 border border-dashed border-slate-800 rounded-xl">
-                                        <i class="fa-solid fa-cart-flatbed text-3xl text-slate-700 mb-2"></i>
-                                        <p class="text-xs text-slate-500">Cart is empty. Click items to add.</p>
-                                    </div>
-                                ` : cartHTML}
+                            <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                ${currentCart.length === 0 ? '<div class="text-center py-8 text-gray-500 text-sm">Cart is empty</div>' : cartHTML}
                             </div>
                         </div>
 
-                        <!-- Summary & Checkout Controls -->
-                        <div class="pt-4 border-t border-slate-800 space-y-3">
-                            <div class="space-y-1.5 text-xs">
-                                <div class="flex justify-between text-slate-400">
-                                    <span>Items Subtotal:</span>
-                                    <span class="text-slate-200 font-semibold">Rs. ${itemsSubtotal.toLocaleString()}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-slate-400">
-                                    <span>Discount (छुट):</span>
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-slate-500">Rs.</span>
-                                        <input type="number" id="cart-discount-input" value="${cartDiscount}" onchange="updateDiscount(this.value)" min="0" class="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2 py-0.5 text-right text-xs text-emerald-400 font-bold focus:outline-none focus:border-blue-500">
-                                    </div>
-                                </div>
-                                <div class="flex justify-between text-base font-extrabold text-slate-100 pt-2 border-t border-slate-800">
-                                    <span>Grand Total:</span>
-                                    <span class="text-emerald-400">Rs. ${grandTotal.toLocaleString()}</span>
-                                </div>
+                        <div class="pt-4 border-t border-gray-700 space-y-3">
+                            <div class="flex justify-between text-lg font-bold">
+                                <span class="text-gray-300">Grand Total:</span>
+                                <span class="text-green-400">Rs. ${subtotal.toLocaleString()}</span>
                             </div>
-
-                            <!-- Payment Options -->
-                            <div class="pt-2">
-                                <label class="block text-xs font-semibold text-slate-400 mb-2">Payment Method (भुक्तानीको प्रकार)</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-emerald-500/50 cursor-pointer text-[11px] font-semibold text-slate-300 transition has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-950/30 has-[:checked]:text-emerald-400">
-                                        <input type="radio" name="payment-method" value="Cash" checked class="hidden">
-                                        <i class="fa-solid fa-money-bill-wave text-base mb-1 text-emerald-400"></i>
-                                        Cash
-                                    </label>
-                                    <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-purple-500/50 cursor-pointer text-[11px] font-semibold text-slate-300 transition has-[:checked]:border-purple-500 has-[:checked]:bg-purple-950/30 has-[:checked]:text-purple-400">
-                                        <input type="radio" name="payment-method" value="Fonepay" class="hidden">
-                                        <i class="fa-solid fa-qrcode text-base mb-1 text-purple-400"></i>
-                                        Fonepay
-                                    </label>
-                                    <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-amber-500/50 cursor-pointer text-[11px] font-semibold text-slate-300 transition has-[:checked]:border-amber-500 has-[:checked]:bg-amber-950/30 has-[:checked]:text-amber-400">
-                                        <input type="radio" name="payment-method" value="Credit" class="hidden">
-                                        <i class="fa-solid fa-book text-base mb-1 text-amber-400"></i>
-                                        Credit (उधारो)
-                                    </label>
-                                </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-200 cursor-pointer">
+                                    <input type="radio" name="payment-method" value="Cash" checked> Cash
+                                </label>
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-200 cursor-pointer">
+                                    <input type="radio" name="payment-method" value="Fonepay"> Fonepay
+                                </label>
                             </div>
-
-                            <button onclick="processCheckout()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold text-white rounded-xl shadow-lg shadow-blue-900/40 transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-print text-sm"></i> Print Bill & Save Transaction
+                            <button onclick="processCheckout()" class="w-full py-3 bg-green-600 hover:bg-green-500 font-semibold text-white rounded-xl shadow-lg flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-print"></i> Complete Sale & Print Bill
                             </button>
                         </div>
                     </div>
@@ -389,25 +378,13 @@
 
         function addToCart(prodId) {
             const product = products.find(p => p.id === prodId);
-            if (!product || product.stock <= 0) {
-                showToast("Selected item is out of stock!", "error");
-                return;
-            }
-
-            const existingIdx = currentCart.findIndex(item => item.id === prodId);
-            if (existingIdx > -1) {
-                if (currentCart[existingIdx].qty + 1 > product.stock) {
-                    showToast("Cannot add more than available stock limit!", "warning");
-                    return;
-                }
-                currentCart[existingIdx].qty += 1;
+            if (!product || product.stock <= 0) { showToast("Out of stock!", "error"); return; }
+            const existing = currentCart.find(item => item.id === prodId);
+            if (existing) {
+                if (existing.qty + 1 > product.stock) { showToast("Stock limit reached!", "error"); return; }
+                existing.qty += 1;
             } else {
-                currentCart.push({
-                    id: product.id,
-                    name: product.name,
-                    price: product.price,
-                    qty: 1
-                });
+                currentCart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
             }
             renderPOS();
         }
@@ -416,242 +393,193 @@
             const item = currentCart[idx];
             const product = products.find(p => p.id === item.id);
             const newQty = item.qty + change;
-
-            if (newQty <= 0) {
-                removeFromCart(idx);
-                return;
-            }
-
-            if (product && newQty > product.stock) {
-                showToast("Stock limit reached for this product!", "warning");
-                return;
-            }
-
+            if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
+            if (product && newQty > product.stock) { showToast("Stock limit reached!", "error"); return; }
             item.qty = newQty;
             renderPOS();
         }
 
-        function removeFromCart(idx) {
-            currentCart.splice(idx, 1);
-            renderPOS();
-        }
-
-        function clearCart() {
-            currentCart = [];
-            cartDiscount = 0;
-            renderPOS();
-        }
-
-        function updateDiscount(val) {
-            cartDiscount = Math.max(0, parseFloat(val) || 0);
-            renderPOS();
-        }
+        function removeFromCart(idx) { currentCart.splice(idx, 1); renderPOS(); }
+        function clearCart() { currentCart = []; renderPOS(); }
 
         function filterPOSProducts(query) {
             const q = query.toLowerCase();
-            const filtered = products.filter(p => 
-                p.name.toLowerCase().includes(q) || 
-                (p.category && p.category.toLowerCase().includes(q)) ||
-                (p.serials && p.serials.toLowerCase().includes(q))
-            );
-            renderPOSGrid(filtered);
-        }
-
-        function filterPOSCategory(cat) {
-            if (cat === 'all') {
-                renderPOSGrid(products);
-                return;
-            }
-            const filtered = products.filter(p => p.category === cat);
-            renderPOSGrid(filtered);
-        }
-
-        function renderPOSGrid(list) {
-            const grid = document.getElementById('pos-product-grid');
-            if (!grid) return;
-            if (list.length === 0) {
-                grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-500 text-xs">No matching products found.</div>';
-                return;
-            }
-            grid.innerHTML = list.map(p => `
-                <div class="bg-slate-900 border border-slate-800/80 hover:border-blue-500/50 rounded-2xl p-4 transition-all hover:shadow-xl hover:shadow-blue-950/20 flex flex-col justify-between group" onclick="addToCart('${p.id}')">
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+            document.getElementById('pos-product-grid').innerHTML = filtered.map(p => `
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 hover:border-blue-500 transition cursor-pointer flex flex-col justify-between" onclick="addToCart('${p.id}')">
                     <div>
-                        <div class="flex justify-between items-start gap-2 mb-2">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-800/40">${p.category || 'General'}</span>
-                            <span class="text-xs font-semibold ${p.stock > 2 ? 'text-slate-400' : 'text-amber-400 font-bold'}">
-                                ${p.stock > 0 ? `<i class="fa-solid fa-box text-[10px]"></i> ${p.stock} in stock` : '<span class="text-rose-400"><i class="fa-solid fa-ban"></i> Out of Stock</span>'}
-                            </span>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-gray-100">${p.name}</h3>
+                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">Stock: ${p.stock}</span>
                         </div>
-                        <h3 class="font-semibold text-sm text-slate-100 group-hover:text-blue-300 transition-colors line-clamp-2">${p.name}</h3>
-                        ${p.serials && p.serials !== 'N/A' ? `<p class="text-[11px] font-mono-code text-slate-500 mt-1 truncate" title="${p.serials}"><i class="fa-solid fa-barcode text-[10px]"></i> ${p.serials}</p>` : ''}
                     </div>
-                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/60">
-                        <div>
-                            <span class="text-[10px] text-slate-400 block">NPR Price</span>
-                            <span class="text-base font-extrabold text-emerald-400">Rs. ${p.price.toLocaleString()}</span>
-                        </div>
-                        <button class="bg-blue-600/20 group-hover:bg-blue-600 text-blue-300 group-hover:text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-plus font-bold"></i> Add
-                        </button>
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-700">
+                        <span class="text-lg font-bold text-green-400">Rs. ${p.price}</span>
+                        <button class="bg-blue-600 px-3 py-1 rounded-lg text-xs text-white">Add</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function processCheckout() {
-            if (currentCart.length === 0) {
-                showToast("Cart is empty! Add products first.", "warning");
-                return;
-            }
-
+        async function processCheckout() {
+            if (currentCart.length === 0) { showToast("Cart is empty!", "error"); return; }
             const customerId = document.getElementById('cart-customer').value;
             const customerObj = customers.find(c => c.id === customerId);
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'Cash';
-
-            if (paymentMethod === 'Credit' && !customerObj) {
-                showToast("Credit/उधारो sales require selecting a registered customer!", "error");
-                return;
-            }
-
-            const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const grandTotal = Math.max(0, subtotal - cartDiscount);
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
             const sale = {
-                id: 'INV-' + Math.floor(100000 + Math.random() * 900000),
+                id: 'INV-' + Date.now().toString().slice(-6),
                 date: new Date().toISOString(),
+                teller: currentUser.email,
                 customerName: customerObj ? customerObj.name : 'Walk-in Customer',
                 customerId: customerId || null,
                 items: [...currentCart],
-                subtotal: subtotal,
-                discount: cartDiscount,
-                total: grandTotal,
+                total: total,
                 paymentMethod: paymentMethod
             };
 
-            // Deduct Stock
-            currentCart.forEach(cartItem => {
+            for (let cartItem of currentCart) {
                 const prod = products.find(p => p.id === cartItem.id);
                 if (prod) {
                     prod.stock = Math.max(0, prod.stock - cartItem.qty);
+                    if (prod.firebaseId) {
+                        await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                    }
                 }
-            });
-
-            // Update Credit Balance if Credit Payment
-            if (paymentMethod === 'Credit' && customerObj) {
-                customerObj.creditBalance += grandTotal;
             }
 
-            sales.unshift(sale);
-            saveData();
+            const docRef = await db.collection('sales').add(sale);
+            sales.unshift({ firebaseId: docRef.id, ...sale });
 
-            showToast(`Sale completed via ${paymentMethod}!`);
-            showReceiptModal(sale);
+            showToast("Sale completed & recorded!");
+            printSaleInvoice(sale);
             clearCart();
         }
 
+        // Dedicated Receipt Printing Engine
+        function printSaleInvoice(sale) {
+            const printWindow = window.open('', '_blank', 'width=400,height=600');
+            const itemsRows = sale.items.map(item => `
+                <tr>
+                    <td style="padding: 4px 0; font-size: 11px;">${item.name}</td>
+                    <td style="padding: 4px 0; text-align: center; font-size: 11px;">${item.qty}</td>
+                    <td style="padding: 4px 0; text-align: right; font-size: 11px;">Rs. ${item.price}</td>
+                    <td style="padding: 4px 0; text-align: right; font-size: 11px;">Rs. ${item.price * item.qty}</td>
+                </tr>
+            `).join('');
+
+            const content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print Bill - ${sale.id}</title>
+                    <style>
+                        body { font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 10px; color: #000; }
+                        .text-center { text-align: center; }
+                        .logo { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin: 0 auto 5px auto; display: block; }
+                        .line { border-bottom: 1px dashed #000; margin: 8px 0; }
+                        table { width: 100%; border-collapse: collapse; }
+                        .font-bold { font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    <div class="text-center">
+                        <img src="${LOGO_SRC}" class="logo" alt="Logo">
+                        <h2 style="margin: 2px 0; font-size: 16px;">SB TECH</h2>
+                        <p style="margin: 2px 0; font-size: 10px;">Damak-5, Jhapa | Phone: 9801234567</p>
+                        <p style="margin: 2px 0; font-size: 10px;">VAT No: 600714930</p>
+                    </div>
+                    <div class="line"></div>
+                    <div style="font-size: 10px;">
+                        <p style="margin: 2px 0;"><strong>Invoice:</strong> ${sale.id}</p>
+                        <p style="margin: 2px 0;"><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}</p>
+                        <p style="margin: 2px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
+                        <p style="margin: 2px 0;"><strong>Biller:</strong> ${sale.teller || 'Admin'}</p>
+                        <p style="margin: 2px 0;"><strong>Payment:</strong> ${sale.paymentMethod}</p>
+                    </div>
+                    <div class="line"></div>
+                    <table>
+                        <thead>
+                            <tr style="border-bottom: 1px solid #000; font-size: 10px; text-align: left;">
+                                <th>Item</th>
+                                <th style="text-align: center;">Qty</th>
+                                <th style="text-align: right;">Rate</th>
+                                <th style="text-align: right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsRows}</tbody>
+                    </table>
+                    <div class="line"></div>
+                    <div style="display: flex; justify-between; font-size: 12px;" class="font-bold">
+                        <span>Grand Total:</span>
+                        <span style="float: right;">Rs. ${sale.total.toLocaleString()}</span>
+                    </div>
+                    <div class="line"></div>
+                    <div class="text-center" style="font-size: 10px; margin-top: 10px;">
+                        <p style="margin:2px;">Thank you for shopping with us!</p>
+                        <p style="margin:2px;">SB TECH - Your Trusted IT Partner</p>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(content);
+            printWindow.document.close();
+        }
+
+        // --- INVENTORY (Admin Only) ---
         function renderProducts() {
+            if (userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
-            
             let rowsHTML = products.map((p, idx) => `
-                <tr class="border-b border-slate-800/60 hover:bg-slate-900/60 text-xs">
-                    <td class="py-3.5 px-4 text-slate-400 font-mono-code">${p.id}</td>
-                    <td class="py-3.5 px-4 font-semibold text-slate-100">${p.name}</td>
-                    <td class="py-3.5 px-4 text-slate-400">
-                        <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/50">${p.category || 'General'}</span>
-                    </td>
-                    <td class="py-3.5 px-4 font-mono-code text-slate-400 max-w-xs truncate" title="${p.serials || 'N/A'}">
-                        ${p.serials || 'N/A'}
-                    </td>
-                    <td class="py-3.5 px-4 font-bold text-emerald-400">Rs. ${p.price.toLocaleString()}</td>
-                    <td class="py-3.5 px-4">
-                        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${p.stock <= 2 ? 'bg-rose-950/80 text-rose-300 border border-rose-800/50' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/50'}">
-                            ${p.stock} units
-                        </span>
-                    </td>
-                    <td class="py-3.5 px-4 flex gap-1.5">
-                        <button onclick="openEditProductModal(${idx})" class="text-blue-400 hover:text-blue-300 p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                        <button onclick="deleteProduct(${idx})" class="text-rose-400 hover:text-rose-300 p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </td>
+                <tr class="border-b border-gray-700 text-sm">
+                    <td class="py-3 px-4 text-gray-300">${p.id}</td>
+                    <td class="py-3 px-4 font-semibold text-gray-100">${p.name}</td>
+                    <td class="py-3 px-4 text-gray-400">${p.category || 'General'}</td>
+                    <td class="py-3 px-4 font-bold text-green-400">Rs. ${p.price.toLocaleString()}</td>
+                    <td class="py-3 px-4">${p.stock} units</td>
+                    <td class="py-3 px-4"><button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-red-400 bg-red-900/30 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></td>
                 </tr>
             `).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                        <div>
-                            <h2 class="text-lg font-extrabold text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-boxes-stacked text-blue-500"></i> Stock & Inventory Master
-                            </h2>
-                            <p class="text-xs text-slate-400">Manage hardware products, pricing, stock levels, and serial numbers</p>
-                        </div>
-                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition flex items-center gap-2 shadow-lg shadow-blue-900/30">
-                            <i class="fa-solid fa-plus"></i> Add New Stock Item
-                        </button>
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-100">Inventory Management (Admin)</h2>
+                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">Add Product</button>
                     </div>
-
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-800 bg-slate-950/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                        <th class="py-3.5 px-4">ID</th>
-                                        <th class="py-3.5 px-4">Product Name</th>
-                                        <th class="py-3.5 px-4">Category</th>
-                                        <th class="py-3.5 px-4">Serials / IMEI</th>
-                                        <th class="py-3.5 px-4">Price (NPR)</th>
-                                        <th class="py-3.5 px-4">Stock</th>
-                                        <th class="py-3.5 px-4">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${products.length === 0 ? '<tr><td colspan="7" class="text-center py-8 text-slate-500 text-xs">No products found in inventory. Click Add New Stock Item.</td></tr>' : rowsHTML}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">ID</th><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Category</th><th class="pb-3 px-4">Price</th><th class="pb-3 px-4">Stock</th><th class="pb-3 px-4">Action</th></tr></thead>
+                            <tbody>${rowsHTML}</tbody>
+                        </table>
                     </div>
                 </div>
             `;
         }
 
         function openAddProductModal() {
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-                <div class="bg-slate-950/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 text-slate-100 shadow-2xl relative">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="font-bold text-base text-slate-100">Add Hardware Product</h2>
-                            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-xmark text-lg"></i></button>
-                        </div>
-                        <form onsubmit="saveNewProduct(event)" class="space-y-4 text-xs">
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Product Name</label>
-                                <input type="text" id="add-p-name" required placeholder="e.g. Dell Vostro 15 3520" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-4">Add Product</h2>
+                        <form onsubmit="saveNewProduct(event)" class="space-y-4">
+                            <div><label class="block text-xs text-gray-400 mb-1">Name</label><input type="text" id="add-p-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Price (NPR)</label>
-                                    <input type="number" id="add-p-price" required min="1" placeholder="e.g. 68000" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Stock Quantity</label>
-                                    <input type="number" id="add-p-qty" required min="0" placeholder="e.g. 10" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
+                                <div><label class="block text-xs text-gray-400 mb-1">Price</label><input type="number" id="add-p-price" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                                <div><label class="block text-xs text-gray-400 mb-1">Stock</label><input type="number" id="add-p-qty" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Category</label>
-                                <input type="text" id="add-p-cat" placeholder="e.g. Laptops, CCTV, Printers, Networking" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Serial Numbers / IMEI (Comma Separated)</label>
-                                <input type="text" id="add-p-serials" placeholder="SN-10291, SN-10292..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono-code text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div class="flex gap-2 pt-3">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-semibold">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl font-bold">Save Stock Item</button>
+                            <div><label class="block text-xs text-gray-400 mb-1">Category</label><input type="text" id="add-p-cat" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 py-2.5 rounded-lg text-sm font-semibold">Save</button>
                             </div>
                         </form>
                     </div>
@@ -659,667 +587,111 @@
             `;
         }
 
-        function saveNewProduct(e) {
+        async function saveNewProduct(e) {
             e.preventDefault();
-            const name = document.getElementById('add-p-name').value;
-            const price = parseFloat(document.getElementById('add-p-price').value);
-            const stock = parseInt(document.getElementById('add-p-qty').value);
-            const category = document.getElementById('add-p-cat').value || 'General';
-            const serials = document.getElementById('add-p-serials').value || 'N/A';
-
-            products.push({
+            const newProd = {
                 id: (100 + products.length + 1).toString(),
-                name,
-                price,
-                stock,
-                category,
-                serials
-            });
-
-            saveData();
+                name: document.getElementById('add-p-name').value,
+                price: parseFloat(document.getElementById('add-p-price').value),
+                stock: parseInt(document.getElementById('add-p-qty').value),
+                category: document.getElementById('add-p-cat').value || 'General'
+            };
+            const docRef = await db.collection('products').add(newProd);
+            products.push({ firebaseId: docRef.id, ...newProd });
             closeModal();
             renderProducts();
-            showToast("New product added to inventory!");
+            showToast("Product added!");
         }
 
-        function openEditProductModal(idx) {
-            const p = products[idx];
-            if (!p) return;
-
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-                <div class="bg-slate-950/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 text-slate-100 shadow-2xl relative">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="font-bold text-base text-slate-100">Edit Product</h2>
-                            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-xmark text-lg"></i></button>
-                        </div>
-                        <form onsubmit="updateProduct(event, ${idx})" class="space-y-4 text-xs">
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Product Name</label>
-                                <input type="text" id="edit-p-name" value="${p.name}" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Price (NPR)</label>
-                                    <input type="number" id="edit-p-price" value="${p.price}" required min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Stock Quantity</label>
-                                    <input type="number" id="edit-p-qty" value="${p.stock}" required min="0" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Category</label>
-                                <input type="text" id="edit-p-cat" value="${p.category || 'General'}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Serials / IMEI</label>
-                                <input type="text" id="edit-p-serials" value="${p.serials || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono-code text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div class="flex gap-2 pt-3">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-semibold">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl font-bold">Update Details</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateProduct(e, idx) {
-            e.preventDefault();
-            products[idx].name = document.getElementById('edit-p-name').value;
-            products[idx].price = parseFloat(document.getElementById('edit-p-price').value);
-            products[idx].stock = parseInt(document.getElementById('edit-p-qty').value);
-            products[idx].category = document.getElementById('edit-p-cat').value;
-            products[idx].serials = document.getElementById('edit-p-serials').value;
-
-            saveData();
-            closeModal();
-            renderProducts();
-            showToast("Product details updated successfully!");
-        }
-
-        function deleteProduct(idx) {
+        async function deleteProduct(firebaseId, idx) {
+            if (firebaseId) await db.collection('products').doc(firebaseId).delete();
             products.splice(idx, 1);
-            saveData();
             renderProducts();
-            showToast("Product deleted from stock!", "warning");
+            showToast("Product deleted", "error");
         }
 
-        function renderRepairs() {
-            const container = document.getElementById('tab-content');
-
-            let repairCards = repairs.map((r, idx) => {
-                let statusBadge = '';
-                if (r.status === 'Pending') statusBadge = '<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold"><i class="fa-regular fa-clock"></i> Pending</span>';
-                else if (r.status === 'In Repair') statusBadge = '<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold"><i class="fa-solid fa-gears"></i> In Repair</span>';
-                else if (r.status === 'Ready') statusBadge = '<span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold"><i class="fa-solid fa-circle-check"></i> Ready for Pickup</span>';
-                else statusBadge = '<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold"><i class="fa-solid fa-house-check"></i> Delivered</span>';
-
-                return `
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700 transition">
-                        <div>
-                            <div class="flex justify-between items-start gap-2 mb-2">
-                                <span class="font-mono-code text-[11px] font-bold text-slate-400">${r.id}</span>
-                                ${statusBadge}
-                            </div>
-                            <h3 class="font-bold text-sm text-slate-100">${r.device}</h3>
-                            <p class="text-xs text-slate-400"><i class="fa-solid fa-user text-[10px]"></i> ${r.customerName} (${r.phone || 'No phone'})</p>
-                            ${r.serialNo ? `<p class="text-[10px] font-mono-code text-slate-500 mt-1"><i class="fa-solid fa-barcode text-[9px]"></i> S/N: ${r.serialNo}</p>` : ''}
-                            
-                            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 mt-2 text-xs text-slate-300">
-                                <strong class="text-slate-400 text-[10px] uppercase block mb-0.5">Problem / Complaint:</strong>
-                                ${r.complaint}
-                            </div>
-                        </div>
-
-                        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
-                            <div>
-                                <span class="text-[10px] text-slate-500 block">Est. Cost</span>
-                                <span class="font-extrabold text-emerald-400">Rs. ${r.estimatedCost.toLocaleString()}</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <select onchange="updateRepairStatus(${idx}, this.value)" class="bg-slate-950 border border-slate-800 rounded-lg text-[11px] px-2 py-1 text-slate-200 focus:outline-none">
-                                    <option value="Pending" ${r.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="In Repair" ${r.status === 'In Repair' ? 'selected' : ''}>In Repair</option>
-                                    <option value="Ready" ${r.status === 'Ready' ? 'selected' : ''}>Ready</option>
-                                    <option value="Delivered" ${r.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                        <div>
-                            <h2 class="text-lg font-extrabold text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-screwdriver-wrench text-blue-500"></i> Computer & Device Repair Tracker
-                            </h2>
-                            <p class="text-xs text-slate-400">Track incoming laptop, PC & printer repair tickets, status updates, and estimated charges</p>
-                        </div>
-                        <button onclick="openAddRepairModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition flex items-center gap-2 shadow-lg shadow-blue-900/30">
-                            <i class="fa-solid fa-plus"></i> Create Repair Ticket
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${repairs.length === 0 ? '<div class="col-span-full text-center py-12 text-slate-500 text-xs">No active repair tickets. Click Create Repair Ticket to start.</div>' : repairCards}
-                    </div>
-                </div>
-            `;
-        }
-
-        function openAddRepairModal() {
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-                <div class="bg-slate-950/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 text-slate-100 shadow-2xl relative">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="font-bold text-base text-slate-100">Create New Repair Ticket</h2>
-                            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-xmark text-lg"></i></button>
-                        </div>
-                        <form onsubmit="saveRepairTicket(event)" class="space-y-4 text-xs">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Customer Name</label>
-                                    <input type="text" id="rep-cust-name" required placeholder="e.g. Suman Rai" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Phone Number</label>
-                                    <input type="text" id="rep-cust-phone" required placeholder="98XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Device / Model</label>
-                                    <input type="text" id="rep-device" required placeholder="e.g. Acer Aspire Laptop" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-slate-400 mb-1 font-semibold">Serial / Tag No.</label>
-                                    <input type="text" id="rep-serial" placeholder="S/N or Tag No." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono-code text-slate-100 focus:outline-none focus:border-blue-500">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Problem / Customer Complaint</label>
-                                <textarea id="rep-complaint" required rows="2" placeholder="Describe issue (e.g. Motherboard dead, screen cracked, OS reinstall)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500"></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Estimated Repair Cost (NPR)</label>
-                                <input type="number" id="rep-cost" required min="0" placeholder="e.g. 2500" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div class="flex gap-2 pt-3">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-semibold">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl font-bold">Issue Ticket</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function saveRepairTicket(e) {
-            e.preventDefault();
-            const customerName = document.getElementById('rep-cust-name').value;
-            const phone = document.getElementById('rep-cust-phone').value;
-            const device = document.getElementById('rep-device').value;
-            const serialNo = document.getElementById('rep-serial').value;
-            const complaint = document.getElementById('rep-complaint').value;
-            const estimatedCost = parseFloat(document.getElementById('rep-cost').value) || 0;
-
-            repairs.unshift({
-                id: 'REP-' + Math.floor(1000 + Math.random() * 9000),
-                customerName,
-                phone,
-                device,
-                serialNo,
-                complaint,
-                estimatedCost,
-                status: 'Pending',
-                date: new Date().toISOString()
-            });
-
-            saveData();
-            closeModal();
-            renderRepairs();
-            showToast("Repair ticket created!");
-        }
-
-        function updateRepairStatus(idx, newStatus) {
-            repairs[idx].status = newStatus;
-            saveData();
-            showToast(`Repair status updated to ${newStatus}`);
-            renderRepairs();
-        }
-
+        // --- CREDIT LEDGER ---
         function renderCustomers() {
             const container = document.getElementById('tab-content');
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger (उधारो खाता)</h2>
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Credit Balance</th></tr></thead>
+                            <tbody>${customers.map(c => `<tr class="border-b border-gray-700/50 text-sm"><td class="py-3 px-4">${c.name}</td><td class="py-3 px-4">${c.phone||'N/A'}</td><td class="py-3 px-4 text-red-400 font-bold">Rs. ${c.creditBalance.toLocaleString()}</td></tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
 
-            let customerRows = customers.map((c, idx) => `
-                <tr class="border-b border-slate-800/60 hover:bg-slate-900/60 text-xs">
-                    <td class="py-3.5 px-4 font-semibold text-slate-100">${c.name}</td>
-                    <td class="py-3.5 px-4 text-slate-400 font-mono-code">${c.phone || 'N/A'}</td>
-                    <td class="py-3.5 px-4 text-slate-400">${c.address || 'N/A'}</td>
-                    <td class="py-3.5 px-4 font-extrabold ${c.creditBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}">
-                        Rs. ${c.creditBalance.toLocaleString()}
-                    </td>
-                    <td class="py-3.5 px-4">
-                        ${c.creditBalance > 0 ? `
-                            <button onclick="openCollectPaymentModal('${c.id}')" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl text-xs font-bold transition border border-emerald-500/30 flex items-center gap-1.5">
-                                <i class="fa-solid fa-hand-holding-dollar"></i> Collect Due
-                            </button>
-                        ` : '<span class="text-slate-500 text-[11px]"><i class="fa-solid fa-circle-check text-emerald-500"></i> Clear Account</span>'}
+        // --- STATEMENTS (Accountant & Admin) ---
+        function renderStatements() {
+            const container = document.getElementById('tab-content');
+            let statementRows = sales.map(s => `
+                <tr class="border-b border-gray-700 text-sm">
+                    <td class="py-3 px-4 font-mono text-blue-400">${s.id}</td>
+                    <td class="py-3 px-4">${new Date(s.date).toLocaleString()}</td>
+                    <td class="py-3 px-4">${s.customerName}</td>
+                    <td class="py-3 px-4">${s.teller || 'Admin'}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-0.5 bg-gray-700 rounded text-xs">${s.paymentMethod || 'Cash'}</span></td>
+                    <td class="py-3 px-4 font-bold text-green-400">Rs. ${s.total.toLocaleString()}</td>
+                    <td class="py-3 px-4">
+                        <button onclick='printSaleInvoice(${JSON.stringify(s)})' class="px-2.5 py-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded text-xs flex items-center gap-1">
+                            <i class="fa-solid fa-print"></i> Re-Print Bill
+                        </button>
                     </td>
                 </tr>
             `).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-center">
                         <div>
-                            <h2 class="text-lg font-extrabold text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-book-bookmark text-blue-500"></i> Customer Credit Ledger (उधारो खाता)
-                            </h2>
-                            <p class="text-xs text-slate-400">Track customer credit balances, payment collection history, and accounts receivable</p>
+                            <h2 class="text-xl font-bold text-gray-100">Financial Statements & Transaction Log</h2>
+                            <p class="text-xs text-gray-400">Complete statement of all sales and teller entries</p>
                         </div>
-                        <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition flex items-center gap-2 shadow-lg shadow-blue-900/30">
-                            <i class="fa-solid fa-user-plus"></i> Register Customer
-                        </button>
                     </div>
-
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-800 bg-slate-950/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                        <th class="py-3.5 px-4">Customer Name</th>
-                                        <th class="py-3.5 px-4">Phone Number</th>
-                                        <th class="py-3.5 px-4">Address</th>
-                                        <th class="py-3.5 px-4">Pending Credit Balance</th>
-                                        <th class="py-3.5 px-4">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${customers.length === 0 ? '<tr><td colspan="5" class="text-center py-8 text-slate-500 text-xs">No customer profiles created yet.</td></tr>' : customerRows}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Invoice #</th><th class="pb-3 px-4">Date/Time</th><th class="pb-3 px-4">Customer</th><th class="pb-3 px-4">Teller</th><th class="pb-3 px-4">Mode</th><th class="pb-3 px-4">Total</th><th class="pb-3 px-4">Action</th></tr></thead>
+                            <tbody>${sales.length === 0 ? '<tr><td colspan="7" class="text-center py-6 text-gray-500">No statements recorded yet</td></tr>' : statementRows}</tbody>
+                        </table>
                     </div>
                 </div>
             `;
         }
 
-        function openAddCustomerModal() {
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-                <div class="bg-slate-950/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl relative">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="font-bold text-base text-slate-100">Register Customer</h2>
-                            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-xmark text-lg"></i></button>
-                        </div>
-                        <form onsubmit="saveCustomer(event)" class="space-y-4 text-xs">
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Customer Full Name</label>
-                                <input type="text" id="cust-name" required placeholder="e.g. Ram Bahadur Thapa" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Phone Number</label>
-                                <input type="text" id="cust-phone" placeholder="98XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Address / Location</label>
-                                <input type="text" id="cust-address" placeholder="e.g. Damak-6, Jhapa" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
-                            </div>
-                            <div class="flex gap-2 pt-3">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-semibold">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl font-bold">Save Customer</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function saveCustomer(e) {
-            e.preventDefault();
-            const name = document.getElementById('cust-name').value;
-            const phone = document.getElementById('cust-phone').value;
-            const address = document.getElementById('cust-address').value;
-
-            customers.push({
-                id: 'c' + Date.now().toString().slice(-5),
-                name,
-                phone,
-                address,
-                creditBalance: 0
-            });
-
-            saveData();
-            closeModal();
-            renderCustomers();
-            showToast("Customer registered successfully!");
-        }
-
-        function openCollectPaymentModal(custId) {
-            const customer = customers.find(c => c.id === custId);
-            if (!customer) return;
-
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-                <div class="bg-slate-950/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl relative">
-                        <div class="flex justify-between items-center mb-2">
-                            <h2 class="font-bold text-base text-slate-100">Collect Due Payment</h2>
-                            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-xmark text-lg"></i></button>
-                        </div>
-                        <p class="text-xs text-slate-400 mb-4">Customer: <strong class="text-slate-200">${customer.name}</strong> | Pending Balance: <strong class="text-rose-400">Rs. ${customer.creditBalance.toLocaleString()}</strong></p>
-                        
-                        <form onsubmit="processCreditPayment(event, '${customer.id}')" class="space-y-4 text-xs">
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Amount Received (NPR)</label>
-                                <input type="number" id="pay-amount" max="${customer.creditBalance}" min="1" required placeholder="Enter amount" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-base font-extrabold text-emerald-400 focus:outline-none focus:border-blue-500">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-semibold">Payment Received Mode</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-950 cursor-pointer text-xs font-semibold text-slate-300">
-                                        <input type="radio" name="collect-method" value="Cash" checked class="accent-emerald-500"> Cash
-                                    </label>
-                                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-950 cursor-pointer text-xs font-semibold text-slate-300">
-                                        <input type="radio" name="collect-method" value="Fonepay" class="accent-purple-500"> Fonepay QR
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="flex gap-2 pt-3">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-semibold">Cancel</button>
-                                <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-white">Confirm Payment</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function processCreditPayment(e, custId) {
-            e.preventDefault();
-            const customer = customers.find(c => c.id === custId);
-            const amount = parseFloat(document.getElementById('pay-amount').value);
-            const payMethod = document.querySelector('input[name="collect-method"]:checked')?.value || 'Cash';
-
-            if (customer && amount > 0) {
-                customer.creditBalance = Math.max(0, customer.creditBalance - amount);
-                
-                // Record collection in sales ledger
-                sales.unshift({
-                    id: 'REC-' + Math.floor(100000 + Math.random() * 900000),
-                    date: new Date().toISOString(),
-                    customerName: customer.name + ' (Dues Collection)',
-                    customerId: customer.id,
-                    items: [{ name: 'Credit Ledger Clearance', qty: 1, price: amount }],
-                    subtotal: amount,
-                    discount: 0,
-                    total: amount,
-                    paymentMethod: payMethod
-                });
-
-                saveData();
-                closeModal();
-                renderCustomers();
-                showToast(`Collected Rs. ${amount.toLocaleString()} via ${payMethod}!`);
-            }
-        }
-
+        // --- REPORTS ---
         function renderReports() {
             const container = document.getElementById('tab-content');
-
             const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
-            const cashRevenue = sales.filter(s => s.paymentMethod === 'Cash').reduce((acc, s) => acc + s.total, 0);
-            const fonepayRevenue = sales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
-            const totalCreditDues = customers.reduce((acc, c) => acc + c.creditBalance, 0);
-
-            let salesRows = sales.map(s => `
-                <tr class="border-b border-slate-800/60 hover:bg-slate-900/60 text-xs">
-                    <td class="py-3.5 px-4 text-slate-300 font-mono-code">${s.id}</td>
-                    <td class="py-3.5 px-4 text-slate-400">${new Date(s.date).toLocaleDateString()} ${new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                    <td class="py-3.5 px-4 font-semibold text-slate-100">${s.customerName}</td>
-                    <td class="py-3.5 px-4">
-                        ${s.paymentMethod === 'Fonepay' 
-                            ? '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20"><i class="fa-solid fa-qrcode"></i> Fonepay</span>'
-                            : (s.paymentMethod === 'Credit'
-                                ? '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20"><i class="fa-solid fa-book"></i> Credit</span>'
-                                : '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-money-bill-wave"></i> Cash</span>')
-                        }
-                    </td>
-                    <td class="py-3.5 px-4 font-bold text-emerald-400">Rs. ${s.total.toLocaleString()}</td>
-                    <td class="py-3.5 px-4">
-                        <button onclick='showReceiptModal(${JSON.stringify(s)})' class="text-blue-400 hover:text-blue-300 text-xs font-semibold px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition">
-                            View Invoice
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            const cashTotal = sales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
+            const fonepayTotal = sales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <!-- Collection Summary Metrics -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Sales Turnover</p>
-                                <h3 class="text-xl font-extrabold text-slate-100 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
-                            </div>
-                            <div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
-                                <i class="fa-solid fa-chart-line text-lg"></i>
-                            </div>
+                    <h2 class="text-xl font-bold text-gray-100">Daily & Financial Reports</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                            <p class="text-xs text-gray-400 uppercase">Total Revenue</p>
+                            <h3 class="text-2xl font-bold text-green-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
                         </div>
-
-                        <div class="bg-slate-900 p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Cash Collection</p>
-                                <h3 class="text-xl font-extrabold text-emerald-300 mt-1">Rs. ${cashRevenue.toLocaleString()}</h3>
-                            </div>
-                            <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
-                                <i class="fa-solid fa-money-bill-wave text-lg"></i>
-                            </div>
+                        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                            <p class="text-xs text-gray-400 uppercase">Cash Collections</p>
+                            <h3 class="text-2xl font-bold text-blue-400 mt-1">Rs. ${cashTotal.toLocaleString()}</h3>
                         </div>
-
-                        <div class="bg-slate-900 p-5 rounded-2xl border border-purple-500/30 flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Fonepay Collection</p>
-                                <h3 class="text-xl font-extrabold text-purple-300 mt-1">Rs. ${fonepayRevenue.toLocaleString()}</h3>
-                            </div>
-                            <div class="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400">
-                                <i class="fa-solid fa-qrcode text-lg"></i>
-                            </div>
-                        </div>
-
-                        <div class="bg-slate-900 p-5 rounded-2xl border border-rose-500/30 flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Total Market Dues</p>
-                                <h3 class="text-xl font-extrabold text-rose-300 mt-1">Rs. ${totalCreditDues.toLocaleString()}</h3>
-                            </div>
-                            <div class="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-400">
-                                <i class="fa-solid fa-hand-holding-dollar text-lg"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Invoice History Log -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                        <div class="p-4 border-b border-slate-800">
-                            <h2 class="font-extrabold text-base text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-receipt text-blue-500"></i> Sales Invoice & Transaction Ledger
-                            </h2>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-800 bg-slate-950/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                        <th class="py-3.5 px-4">Invoice #</th>
-                                        <th class="py-3.5 px-4">Date & Time</th>
-                                        <th class="py-3.5 px-4">Customer</th>
-                                        <th class="py-3.5 px-4">Payment Method</th>
-                                        <th class="py-3.5 px-4">Total Amount</th>
-                                        <th class="py-3.5 px-4">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${sales.length === 0 ? '<tr><td colspan="6" class="text-center py-8 text-slate-500 text-xs">No sales recorded yet.</td></tr>' : salesRows}
-                                </tbody>
-                            </table>
+                        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                            <p class="text-xs text-gray-400 uppercase">Fonepay Collections</p>
+                            <h3 class="text-2xl font-bold text-purple-400 mt-1">Rs. ${fonepayTotal.toLocaleString()}</h3>
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        function showReceiptModal(sale) {
-            const modal = document.getElementById('modal-container');
-            const itemsList = sale.items.map(item => `
-                <div class="flex justify-between text-xs border-b border-slate-200 py-1.5 text-slate-800 font-medium">
-                    <span>${item.name} × ${item.qty}</span>
-                    <span>Rs. ${(item.price * item.qty).toLocaleString()}</span>
-                </div>
-            `).join('');
-
-            modal.innerHTML = `
-                <div class="bg-slate-950/80 backdrop-blur-sm fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-slate-900 shadow-2xl relative">
-                        <button onclick="closeModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
-                            <i class="fa-solid fa-xmark text-lg"></i>
-                        </button>
-
-                        <div class="text-center mb-4 border-b border-slate-200 pb-3">
-                            <h2 class="font-black text-xl text-slate-900 tracking-wide">SB TECH</h2>
-                            <p class="text-xs text-slate-600 font-semibold">Complete IT Support & Electronics</p>
-                            <p class="text-[11px] text-slate-500">Damak-5, Jhapa Nepal | Tel: 023-575959</p>
-                            <p class="text-[11px] text-slate-500 font-mono-code">VAT Reg: 600714930</p>
-                            <div class="mt-2 text-xs font-bold text-blue-700 font-mono-code">Invoice: ${sale.id}</div>
-                            <p class="text-[10px] text-slate-400">${new Date(sale.date).toLocaleString()}</p>
-                        </div>
-
-                        <div class="text-xs mb-3 text-slate-700 space-y-0.5">
-                            <p><strong>Customer:</strong> ${sale.customerName}</p>
-                            <p><strong>Payment Mode:</strong> <span class="font-bold text-slate-900">${sale.paymentMethod}</span></p>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 pb-1 mb-1">Purchased Line Items</div>
-                            ${itemsList}
-                        </div>
-
-                        <div class="space-y-1 border-t border-slate-300 pt-2 text-xs mb-5">
-                            <div class="flex justify-between text-slate-600">
-                                <span>Subtotal:</span>
-                                <span>Rs. ${(sale.subtotal || sale.total).toLocaleString()}</span>
-                            </div>
-                            ${sale.discount > 0 ? `
-                                <div class="flex justify-between text-rose-600">
-                                    <span>Discount:</span>
-                                    <span>- Rs. ${sale.discount.toLocaleString()}</span>
-                                </div>
-                            ` : ''}
-                            <div class="flex justify-between font-extrabold text-slate-900 text-sm pt-1 border-t border-slate-200">
-                                <span>Grand Total:</span>
-                                <span class="text-emerald-700">Rs. ${sale.total.toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button onclick="printInvoice('${sale.id}')" class="flex-1 bg-slate-900 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-print"></i> Print Invoice
-                            </button>
-                            <button onclick="closeModal()" class="px-4 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-200">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function printInvoice(saleId) {
-            const sale = sales.find(s => s.id === saleId);
-            if (!sale) return;
-
-            const printArea = document.getElementById('printable-area');
-            printArea.innerHTML = `
-                <div style="font-family: Arial, sans-serif; max-width: 380px; margin: 0 auto; padding: 15px; color: #000;">
-                    <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-                        <h2 style="margin: 0; font-size: 22px; font-weight: 900;">SB TECH</h2>
-                        <p style="margin: 2px 0; font-size: 11px;">Complete IT Support & Electronics</p>
-                        <p style="margin: 2px 0; font-size: 11px;">Damak-5, Jhapa Nepal</p>
-                        <p style="margin: 2px 0; font-size: 11px;">Phone: 023-575959 / 9806050500</p>
-                        <p style="margin: 2px 0; font-size: 11px; font-weight: bold;">VAT No: 600714930</p>
-                    </div>
-
-                    <p style="font-size: 11px; margin: 3px 0;"><strong>Tax Invoice #:</strong> ${sale.id}</p>
-                    <p style="font-size: 11px; margin: 3px 0;"><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}</p>
-                    <p style="font-size: 11px; margin: 3px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
-                    <p style="font-size: 11px; margin: 3px 0;"><strong>Payment Method:</strong> ${sale.paymentMethod}</p>
-
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid #000;">
-                                <th style="text-align: left; padding: 4px 0;">Item</th>
-                                <th style="text-align: center;">Qty</th>
-                                <th style="text-align: right;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${sale.items.map(item => `
-                                <tr style="border-bottom: 1px font-style: dotted #ccc;">
-                                    <td style="padding: 4px 0;">${item.name}</td>
-                                    <td style="text-align: center;">${item.qty}</td>
-                                    <td style="text-align: right;">Rs. ${(item.price * item.qty).toLocaleString()}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-
-                    <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 5px; font-size: 11px;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Subtotal:</span>
-                            <span>Rs. ${(sale.subtotal || sale.total).toLocaleString()}</span>
-                        </div>
-                        ${sale.discount > 0 ? `
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>Discount:</span>
-                                <span>- Rs. ${sale.discount.toLocaleString()}</span>
-                            </div>
-                        ` : ''}
-                        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 4px; border-top: 1px dashed #000; padding-top: 4px;">
-                            <span>Grand Total:</span>
-                            <span>Rs. ${sale.total.toLocaleString()}</span>
-                        </div>
-                    </div>
-
-                    <div style="text-align: center; margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-size: 10px;">
-                        <p style="margin: 0; font-weight: bold;">Thank you for choosing SB TECH!</p>
-                        <p style="margin: 2px 0;">Goods once sold are not returnable.</p>
-                    </div>
-                </div>
-            `;
-
-            window.print();
-        }
-
-        function closeModal() {
-            document.getElementById('modal-container').innerHTML = '';
-        }
-
-        // Initialize App on Window Load
-        window.onload = function() {
-            renderPOS();
-            updatePendingBadge();
-        };
+        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
     </script>
 </body>
 </html>
