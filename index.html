@@ -200,7 +200,7 @@
                 html += `<button onclick="switchTab('pos')" id="tab-btn-pos" class="px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow-md"><i class="fa-solid fa-cart-shopping"></i> POS & Billing</button>`;
             }
             if (userRole === 'admin') {
-                html += `<button onclick="switchTab('products')" id="tab-btn-products" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i> Inventory</button>`;
+                html += `<button onclick="switchTab('products')" id="tab-btn-products" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i> Inventory & Stock Adjust</button>`;
             }
             if (userRole === 'admin' || userRole === 'accountant') {
                 html += `<button onclick="switchTab('customers')" id="tab-btn-customers" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-users"></i> Credit Ledger</button>`;
@@ -569,20 +569,32 @@
                     <td class="py-3 px-4 font-semibold text-gray-100">${p.name}</td>
                     <td class="py-3 px-4 text-gray-400">${p.category || 'General'}</td>
                     <td class="py-3 px-4 font-bold text-green-400">Rs. ${p.price.toLocaleString()}</td>
-                    <td class="py-3 px-4">${p.stock} units</td>
-                    <td class="py-3 px-4"><button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-red-400 bg-red-900/30 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></td>
+                    <td class="py-3 px-4 font-semibold text-blue-300">${p.stock} units</td>
+                    <td class="py-3 px-4 flex items-center gap-2">
+                        <button onclick="openAdjustStockModal('${p.firebaseId}', ${idx})" class="px-2.5 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
+                            <i class="fa-solid fa-sliders"></i> Adjust Stock
+                        </button>
+                        <button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-red-400 bg-red-900/30 hover:bg-red-600 hover:text-white p-1.5 rounded transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             `).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-bold text-gray-100">Inventory Management (Admin)</h2>
-                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">Add Product</button>
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-100">Inventory Management & Manual Stock Adjust</h2>
+                            <p class="text-xs text-gray-400">Admin-only panel to add items or adjust current stock levels</p>
+                        </div>
+                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
+                            <i class="fa-solid fa-plus"></i> Add Product
+                        </button>
                     </div>
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">ID</th><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Category</th><th class="pb-3 px-4">Price</th><th class="pb-3 px-4">Stock</th><th class="pb-3 px-4">Action</th></tr></thead>
+                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">ID</th><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Category</th><th class="pb-3 px-4">Price</th><th class="pb-3 px-4">Current Stock</th><th class="pb-3 px-4">Admin Actions</th></tr></thead>
                             <tbody>${rowsHTML}</tbody>
                         </table>
                     </div>
@@ -594,22 +606,59 @@
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
-                        <h2 class="font-bold text-lg mb-4">Add Product</h2>
+                        <h2 class="font-bold text-lg mb-4">Add New Product</h2>
                         <form onsubmit="saveNewProduct(event)" class="space-y-4">
                             <div><label class="block text-xs text-gray-400 mb-1">Name</label><input type="text" id="add-p-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-xs text-gray-400 mb-1">Price</label><input type="number" id="add-p-price" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
-                                <div><label class="block text-xs text-gray-400 mb-1">Stock</label><input type="number" id="add-p-qty" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                                <div><label class="block text-xs text-gray-400 mb-1">Price (Rs.)</label><input type="number" id="add-p-price" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                                <div><label class="block text-xs text-gray-400 mb-1">Initial Stock</label><input type="number" id="add-p-qty" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             </div>
                             <div><label class="block text-xs text-gray-400 mb-1">Category</label><input type="text" id="add-p-cat" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div class="flex gap-2 pt-2">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 py-2.5 rounded-lg text-sm font-semibold">Save</button>
+                                <button type="submit" class="flex-1 bg-blue-600 py-2.5 rounded-lg text-sm font-semibold">Save Product</button>
                             </div>
                         </form>
                     </div>
                 </div>
             `;
+        }
+
+        function openAdjustStockModal(firebaseId, idx) {
+            const product = products[idx];
+            if (!product) return;
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-1">Manual Stock Adjustment (Admin)</h2>
+                        <p class="text-xs text-gray-400 mb-4">Adjust stock level for: <strong class="text-white">${product.name}</strong></p>
+                        <form onsubmit="saveStockAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">New Stock Quantity</label>
+                                <input type="number" id="adjust-p-qty" value="${product.stock}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-green-400">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-500 py-2.5 rounded-lg text-sm font-semibold text-white">Update Stock</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveStockAdjustment(e, firebaseId, idx) {
+            e.preventDefault();
+            const newQty = parseInt(document.getElementById('adjust-p-qty').value);
+            if (isNaN(newQty) || newQty < 0) return;
+
+            if (firebaseId) {
+                await db.collection('products').doc(firebaseId).update({ stock: newQty });
+            }
+            products[idx].stock = newQty;
+            closeModal();
+            renderProducts();
+            showToast("Stock adjusted successfully!");
         }
 
         async function saveNewProduct(e) {
@@ -635,20 +684,116 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER ---
+        // --- CREDIT LEDGER (View for Accountant & Admin, Manual Adjust for Admin Only) ---
         function renderCustomers() {
             const container = document.getElementById('tab-content');
+            let customerRows = customers.map((c, idx) => `
+                <tr class="border-b border-gray-700/50 text-sm">
+                    <td class="py-3 px-4 font-semibold text-gray-100">${c.name}</td>
+                    <td class="py-3 px-4 text-gray-400">${c.phone || 'N/A'}</td>
+                    <td class="py-3 px-4 text-red-400 font-bold">Rs. ${c.creditBalance.toLocaleString()}</td>
+                    <td class="py-3 px-4">
+                        ${userRole === 'admin' ? `
+                            <button onclick="openAdjustCreditModal('${c.firebaseId}',${idx})" class="px-2.5 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
+                                <i class="fa-solid fa-pen-to-square"></i> Adjust Credit
+                            </button>
+                        ` : '<span class="text-xs text-gray-500">Read-only</span>'}
+                    </td>
+                </tr>
+            `).join('');
+
             container.innerHTML = `
                 <div class="space-y-6">
-                    <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger (उधारो खाता)</h2>
-                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger (उधारो खाता)</h2>
+                            <p class="text-xs text-gray-400">${userRole === 'admin' ? 'Admin Mode: View and manually adjust customer balance' : 'Accountant Mode: View-only'}</p>
+                        </div>
+                        ${userRole === 'admin' ? `
+                            <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
+                                <i class="fa-solid fa-user-plus"></i> Add Customer
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Credit Balance</th></tr></thead>
-                            <tbody>${customers.map(c => `<tr class="border-b border-gray-700/50 text-sm"><td class="py-3 px-4">${c.name}</td><td class="py-3 px-4">${c.phone||'N/A'}</td><td class="py-3 px-4 text-red-400 font-bold">Rs. ${c.creditBalance.toLocaleString()}</td></tr>`).join('')}</tbody>
+                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Customer Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Credit Balance</th><th class="pb-3 px-4">Action</th></tr></thead>
+                            <tbody>${customerRows}</tbody>
                         </table>
                     </div>
                 </div>
             `;
+        }
+
+        function openAddCustomerModal() {
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-4">Add New Customer</h2>
+                        <form onsubmit="saveNewCustomer(event)" class="space-y-4">
+                            <div><label class="block text-xs text-gray-400 mb-1">Customer Name</label><input type="text" id="add-c-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Phone Number</label><input type="text" id="add-c-phone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Opening Credit Balance (Rs.)</label><input type="number" id="add-c-balance" value="0" min="0" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 py-2.5 rounded-lg text-sm font-semibold">Save Customer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveNewCustomer(e) {
+            e.preventDefault();
+            const newCust = {
+                id: 'c' + (customers.length + 1),
+                name: document.getElementById('add-c-name').value,
+                phone: document.getElementById('add-c-phone').value || '',
+                creditBalance: parseFloat(document.getElementById('add-c-balance').value) || 0
+            };
+            const docRef = await db.collection('customers').add(newCust);
+            customers.push({ firebaseId: docRef.id, ...newCust });
+            closeModal();
+            renderCustomers();
+            showToast("Customer added!");
+        }
+
+        function openAdjustCreditModal(firebaseId, idx) {
+            const customer = customers[idx];
+            if (!customer) return;
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-1">Manual Credit Ledger Adjustment (Admin)</h2>
+                        <p class="text-xs text-gray-400 mb-4">Adjust credit balance for: <strong class="text-white">${customer.name}</strong></p>
+                        <form onsubmit="saveCreditAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">New Credit Balance (Rs.)</label>
+                                <input type="number" id="adjust-c-balance" value="${customer.creditBalance}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-red-400">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold text-white">Update Balance</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveCreditAdjustment(e, firebaseId, idx) {
+            e.preventDefault();
+            const newBalance = parseFloat(document.getElementById('adjust-c-balance').value);
+            if (isNaN(newBalance) || newBalance < 0) return;
+
+            if (firebaseId) {
+                await db.collection('customers').doc(firebaseId).update({ creditBalance: newBalance });
+            }
+            customers[idx].creditBalance = newBalance;
+            closeModal();
+            renderCustomers();
+            showToast("Credit balance updated!");
         }
 
         // --- STATEMENTS & RETURNS (Accountant & Admin) ---
