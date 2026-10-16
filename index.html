@@ -29,7 +29,7 @@
         <div id="auth-screen" class="flex-1 flex items-center justify-center p-4">
             <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-8 shadow-2xl">
                 <div class="text-center mb-6">
-                    <img id="app-logo-login" class="w-20 h-20 mx-auto rounded-full mb-3 shadow-lg object-cover" alt="SB TECH Logo">
+                    <img id="app-logo-login" src="logo.jpeg" class="w-20 h-20 mx-auto rounded-full mb-3 shadow-lg object-cover border-2 border-blue-500" alt="SB TECH Logo" onerror="this.style.display='none'">
                     <h1 class="font-extrabold text-xl text-white">SB TECH Cloud Login</h1>
                     <p class="text-xs text-gray-400 mt-1">Complete IT Support & Service</p>
                 </div>
@@ -59,7 +59,7 @@
             <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
                 <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <img id="app-logo-header" class="w-10 h-10 rounded-full object-cover shadow-md" alt="SB TECH Logo">
+                        <img id="app-logo-header" src="logo.jpeg" class="w-10 h-10 rounded-full object-cover shadow-md border border-blue-500" alt="SB TECH Logo" onerror="this.style.display='none'">
                         <div>
                             <h1 class="font-extrabold text-sm text-white tracking-wide flex items-center gap-2">
                                 SB TECH <span id="role-badge" class="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full"></span>
@@ -91,7 +91,6 @@
     <div id="modal-container"></div>
 
     <script>
-        // Logo Image Placeholder (Local/Embedded)
         const LOGO_SRC = "logo.jpeg";
 
         // ==========================================
@@ -118,9 +117,6 @@
         let sales = [];
         let currentCart = [];
         let activeTab = 'pos';
-
-        document.getElementById('app-logo-login').src = LOGO_SRC;
-        document.getElementById('app-logo-header').src = LOGO_SRC;
 
         auth.onAuthStateChanged(async function(user) {
             if (user) {
@@ -208,7 +204,7 @@
             }
             if (userRole === 'admin' || userRole === 'accountant') {
                 html += `<button onclick="switchTab('customers')" id="tab-btn-customers" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-users"></i> Credit Ledger</button>`;
-                html += `<button onclick="switchTab('statements')" id="tab-btn-statements" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar"></i> Statements</button>`;
+                html += `<button onclick="switchTab('statements')" id="tab-btn-statements" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar"></i> Statements & Returns</button>`;
                 html += `<button onclick="switchTab('reports')" id="tab-btn-reports" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-gray-800 transition flex items-center gap-2"><i class="fa-solid fa-chart-line"></i> Reports</button>`;
             }
 
@@ -436,7 +432,8 @@
                 customerId: customerId || null,
                 items: [...currentCart],
                 total: total,
-                paymentMethod: paymentMethod
+                paymentMethod: paymentMethod,
+                status: 'completed'
             };
 
             for (let cartItem of currentCart) {
@@ -455,6 +452,33 @@
             showToast("Sale completed & recorded!");
             printSaleInvoice(sale);
             clearCart();
+        }
+
+        async function cancelSale(firebaseId) {
+            if (userRole !== 'admin') {
+                showToast("Only Admin can cancel sales!", "error");
+                return;
+            }
+            if (!confirm("Are you sure you want to cancel/return this sale? Stock will be restored.")) return;
+
+            const sale = sales.find(s => s.firebaseId === firebaseId);
+            if (!sale || sale.status === 'cancelled') return;
+
+            for (let item of sale.items) {
+                const prod = products.find(p => p.id === item.id);
+                if (prod) {
+                    prod.stock += item.qty;
+                    if (prod.firebaseId) {
+                        await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                    }
+                }
+            }
+
+            await db.collection('sales').doc(firebaseId).update({ status: 'cancelled' });
+            sale.status = 'cancelled';
+
+            showToast("Sale cancelled & stock restored successfully!");
+            renderStatements();
         }
 
         // Dedicated Receipt Printing Engine
@@ -497,6 +521,7 @@
                         <p style="margin: 2px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
                         <p style="margin: 2px 0;"><strong>Biller:</strong> ${sale.teller || 'Admin'}</p>
                         <p style="margin: 2px 0;"><strong>Payment:</strong> ${sale.paymentMethod}</p>
+                        ${sale.status === 'cancelled' ? '<p style="color: red; font-weight: bold; text-align: center;">*** CANCELLED / RETURNED ***</p>' : ''}
                     </div>
                     <div class="line"></div>
                     <table>
@@ -511,7 +536,7 @@
                         <tbody>${itemsRows}</tbody>
                     </table>
                     <div class="line"></div>
-                    <div style="display: flex; justify-between; font-size: 12px;" class="font-bold">
+                    <div style="font-size: 12px;" class="font-bold">
                         <span>Grand Total:</span>
                         <span style="float: right;">Rs. ${sale.total.toLocaleString()}</span>
                     </div>
@@ -626,31 +651,35 @@
             `;
         }
 
-        // --- STATEMENTS (Accountant & Admin) ---
+        // --- STATEMENTS & RETURNS (Accountant & Admin) ---
         function renderStatements() {
             const container = document.getElementById('tab-content');
-            let statementRows = sales.map(s => `
-                <tr class="border-b border-gray-700 text-sm">
-                    <td class="py-3 px-4 font-mono text-blue-400">${s.id}</td>
-                    <td class="py-3 px-4">${new Date(s.date).toLocaleString()}</td>
-                    <td class="py-3 px-4">${s.customerName}</td>
-                    <td class="py-3 px-4">${s.teller || 'Admin'}</td>
-                    <td class="py-3 px-4"><span class="px-2 py-0.5 bg-gray-700 rounded text-xs">${s.paymentMethod || 'Cash'}</span></td>
-                    <td class="py-3 px-4 font-bold text-green-400">Rs. ${s.total.toLocaleString()}</td>
-                    <td class="py-3 px-4">
-                        <button onclick='printSaleInvoice(${JSON.stringify(s)})' class="px-2.5 py-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded text-xs flex items-center gap-1">
-                            <i class="fa-solid fa-print"></i> Re-Print Bill
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            let statementRows = sales.map(s => {
+                const isCancelled = s.status === 'cancelled';
+                return `
+                    <tr class="border-b border-gray-700 text-sm ${isCancelled ? 'opacity-50 bg-red-950/20' : ''}">
+                        <td class="py-3 px-4 font-mono text-blue-400">${s.id} ${isCancelled ? '<span class="text-xs text-red-400 font-bold">(CANCELLED)</span>' : ''}</td>
+                        <td class="py-3 px-4">${new Date(s.date).toLocaleString()}</td>
+                        <td class="py-3 px-4">${s.customerName}</td>
+                        <td class="py-3 px-4">${s.teller || 'Admin'}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-0.5 bg-gray-700 rounded text-xs">${s.paymentMethod || 'Cash'}</span></td>
+                        <td class="py-3 px-4 font-bold ${isCancelled ? 'line-through text-gray-500' : 'text-green-400'}">Rs. ${s.total.toLocaleString()}</td>
+                        <td class="py-3 px-4 flex items-center gap-2">
+                            <button onclick='printSaleInvoice(${JSON.stringify(s)})' class="px-2.5 py-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded text-xs flex items-center gap-1">
+                                <i class="fa-solid fa-print"></i> Bill
+                            </button>
+                            ${userRole === 'admin' && !isCancelled ? `<button onclick="cancelSale('${s.firebaseId}')" class="px-2.5 py-1 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded text-xs font-semibold">Cancel / Return</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-100">Financial Statements & Transaction Log</h2>
-                            <p class="text-xs text-gray-400">Complete statement of all sales and teller entries</p>
+                            <h2 class="text-xl font-bold text-gray-100">Financial Statements & Returns Log</h2>
+                            <p class="text-xs text-gray-400">View all bills and manage sales cancellations / returns (Admin only)</p>
                         </div>
                     </div>
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
@@ -663,19 +692,20 @@
             `;
         }
 
-        // --- REPORTS ---
+        // --- REPORTS (Excludes cancelled sales) ---
         function renderReports() {
             const container = document.getElementById('tab-content');
-            const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0);
-            const cashTotal = sales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
-            const fonepayTotal = sales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
+            const activeSales = sales.filter(s => s.status !== 'cancelled');
+            const totalRevenue = activeSales.reduce((acc, s) => acc + s.total, 0);
+            const cashTotal = activeSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
+            const fonepayTotal = activeSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <h2 class="text-xl font-bold text-gray-100">Daily & Financial Reports</h2>
+                    <h2 class="text-xl font-bold text-gray-100">Daily & Financial Reports (Net of Returns)</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                            <p class="text-xs text-gray-400 uppercase">Total Revenue</p>
+                            <p class="text-xs text-gray-400 uppercase">Net Revenue</p>
                             <h3 class="text-2xl font-bold text-green-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
                         </div>
                         <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
