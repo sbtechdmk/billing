@@ -313,7 +313,7 @@
             `;
         }
 
-        // --- POS SECTION ---
+        // --- POS SECTION WITH CREDIT PAYMENT OPTION ---
         function renderPOS() {
             const container = document.getElementById('tab-content');
             let itemsHTML = products.map(p => `
@@ -351,6 +351,7 @@
 
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const grandTotal = Math.max(0, subtotal - currentDiscount);
+            const selectedCustId = document.getElementById('cart-customer-select')?.value || '';
 
             container.innerHTML = `
                 <div class="space-y-4">
@@ -381,7 +382,7 @@
                                         <label class="block text-xs text-gray-400 mb-1">Select Existing Customer</label>
                                         <select id="cart-customer-select" onchange="onSelectCustomerChange(this.value)" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
                                             <option value="">-- Direct / Walk-in Customer --</option>
-                                            ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'N/A'})</option>`).join('')}
+                                            ${customers.map(c => `<option value="${c.firebaseId || c.id}" ${selectedCustId === (c.firebaseId || c.id) ? 'selected' : ''}>${c.name} (${c.phone || 'N/A'})</option>`).join('')}
                                         </select>
                                     </div>
                                     <div>
@@ -421,12 +422,15 @@
                                     <span class="text-green-400">Rs. ${grandTotal.toLocaleString()}</span>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-2 pt-1">
-                                    <label class="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-200 cursor-pointer">
+                                <div class="grid grid-cols-3 gap-1.5 pt-1">
+                                    <label class="flex items-center justify-center gap-1 p-2 rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-200 cursor-pointer">
                                         <input type="radio" name="payment-method" value="Cash" checked> Cash
                                     </label>
-                                    <label class="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-200 cursor-pointer">
+                                    <label class="flex items-center justify-center gap-1 p-2 rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-200 cursor-pointer">
                                         <input type="radio" name="payment-method" value="Fonepay"> Fonepay
+                                    </label>
+                                    <label class="flex items-center justify-center gap-1 p-2 rounded-lg border border-gray-700 bg-gray-900 text-xs text-orange-300 cursor-pointer">
+                                        <input type="radio" name="payment-method" value="Credit"> Credit
                                     </label>
                                 </div>
                                 <button onclick="processCheckout()" class="w-full py-3 bg-green-600 hover:bg-green-500 font-semibold text-white rounded-xl shadow-lg flex items-center justify-center gap-2">
@@ -454,7 +458,7 @@
                 document.getElementById('pos-customer-phone').value = '';
                 return;
             }
-            const c = customers.find(cust => cust.id === custId);
+            const c = customers.find(cust => (cust.firebaseId === custId || cust.id === custId));
             if (c) {
                 document.getElementById('pos-customer-name').value = c.name || '';
                 document.getElementById('pos-customer-address').value = c.address || '';
@@ -521,6 +525,12 @@
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const total = Math.max(0, subtotal - currentDiscount);
 
+            // If Credit sale, check if customer is selected
+            if (paymentMethod === 'Credit' && !custSelectId) {
+                showToast("Please select an existing customer from dropdown for Credit sale!", "error");
+                return;
+            }
+
             const sale = {
                 id: 'INV-' + Date.now().toString().slice(-6),
                 date: new Date().toISOString(),
@@ -537,12 +547,24 @@
                 status: 'completed'
             };
 
+            // Deduct stock
             for (let cartItem of currentCart) {
                 const prod = products.find(p => p.id === cartItem.id);
                 if (prod) {
                     prod.stock = Math.max(0, prod.stock - cartItem.qty);
                     if (prod.firebaseId) {
                         await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                    }
+                }
+            }
+
+            // If Credit, update Customer Ledger Balance
+            if (paymentMethod === 'Credit' && custSelectId) {
+                const cust = customers.find(c => (c.firebaseId === custSelectId || c.id === custSelectId));
+                if (cust) {
+                    cust.creditBalance = (cust.creditBalance || 0) + total;
+                    if (cust.firebaseId) {
+                        await db.collection('customers').doc(cust.firebaseId).update({ creditBalance: cust.creditBalance });
                     }
                 }
             }
@@ -644,7 +666,7 @@
             printWindow.document.close();
         }
 
-        // --- INVENTORY SECTION ---
+        // --- INVENTORY SECTION (PRICE & STOCK BOTH ADJUSTMENT) ---
         function renderProducts() {
             if (!userPermissions.products && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -656,8 +678,8 @@
                     <td class="py-3 px-4 font-bold text-green-400">Rs. ${p.price.toLocaleString()}</td>
                     <td class="py-3 px-4 font-semibold ${p.stock <= 3 ? 'text-red-400 font-bold' : 'text-blue-300'}">${p.stock} units</td>
                     <td class="py-3 px-4 flex items-center gap-2">
-                        <button onclick="openAdjustStockModal('${p.firebaseId}', ${idx})" class="px-2.5 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
-                            <i class="fa-solid fa-sliders"></i> Adjust
+                        <button onclick="openAdjustProductModal('${p.firebaseId}', ${idx})" class="px-2.5 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
+                            <i class="fa-solid fa-sliders"></i> Adjust Price & Stock
                         </button>
                         <button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-red-400 bg-red-900/30 hover:bg-red-600 hover:text-white p-1.5 rounded transition">
                             <i class="fa-solid fa-trash"></i>
@@ -672,7 +694,7 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h2 class="text-xl font-bold text-gray-100">Inventory & Stock Management</h2>
-                            <p class="text-xs text-gray-400">Manage products, export/import Excel, check low stocks</p>
+                            <p class="text-xs text-gray-400">Manage products, adjust prices/stocks, export/import Excel</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <button onclick="exportStockExcel()" class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded-xl text-sm font-semibold text-white transition shadow-md flex items-center gap-2">
@@ -774,22 +796,26 @@
             `;
         }
 
-        function openAdjustStockModal(firebaseId, idx) {
+        function openAdjustProductModal(firebaseId, idx) {
             const product = products[idx];
             if (!product) return;
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
-                        <h2 class="font-bold text-lg mb-1">Manual Stock Adjustment</h2>
-                        <p class="text-xs text-gray-400 mb-4">Adjust stock level for: <strong class="text-white">${product.name}</strong></p>
-                        <form onsubmit="saveStockAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                        <h2 class="font-bold text-lg mb-1">Adjust Price & Stock</h2>
+                        <p class="text-xs text-gray-400 mb-4">Editing product: <strong class="text-white">${product.name}</strong></p>
+                        <form onsubmit="saveProductAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">New Stock Quantity</label>
-                                <input type="number" id="adjust-p-qty" value="${product.stock}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-green-400">
+                                <label class="block text-xs text-gray-400 mb-1">Selling Price (Rs.)</label>
+                                <input type="number" id="adjust-p-price" value="${product.price}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-green-400">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Stock Quantity</label>
+                                <input type="number" id="adjust-p-qty" value="${product.stock}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-blue-400">
                             </div>
                             <div class="flex gap-2 pt-2">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
-                                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-500 py-2.5 rounded-lg text-sm font-semibold text-white">Update Stock</button>
+                                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-500 py-2.5 rounded-lg text-sm font-semibold text-white">Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -797,18 +823,21 @@
             `;
         }
 
-        async function saveStockAdjustment(e, firebaseId, idx) {
+        async function saveProductAdjustment(e, firebaseId, idx) {
             e.preventDefault();
+            const newPrice = parseFloat(document.getElementById('adjust-p-price').value);
             const newQty = parseInt(document.getElementById('adjust-p-qty').value);
-            if (isNaN(newQty) || newQty < 0) return;
+
+            if (isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) return;
 
             if (firebaseId) {
-                await db.collection('products').doc(firebaseId).update({ stock: newQty });
+                await db.collection('products').doc(firebaseId).update({ price: newPrice, stock: newQty });
             }
+            products[idx].price = newPrice;
             products[idx].stock = newQty;
             closeModal();
             renderProducts();
-            showToast("Stock adjusted successfully!");
+            showToast("Price & Stock updated successfully!");
         }
 
         async function saveNewProduct(e) {
@@ -843,7 +872,7 @@
                     <td class="py-3 px-4 font-semibold text-gray-100">${c.name}</td>
                     <td class="py-3 px-4 text-gray-300">${c.phone || 'N/A'}</td>
                     <td class="py-3 px-4 text-gray-300">${c.address || 'N/A'}</td>
-                    <td class="py-3 px-4 text-red-400 font-bold">Rs. ${c.creditBalance.toLocaleString()}</td>
+                    <td class="py-3 px-4 text-red-400 font-bold">Rs. ${(c.creditBalance || 0).toLocaleString()}</td>
                     <td class="py-3 px-4 flex items-center gap-2">
                         <button onclick="openEditCustomerModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
                             <i class="fa-solid fa-pen-to-square"></i> Edit
@@ -870,7 +899,7 @@
                                     <th class="pb-3 px-4">Customer Name</th>
                                     <th class="pb-3 px-4">Phone Number</th>
                                     <th class="pb-3 px-4">Address</th>
-                                    <th class="pb-3 px-4">Credit Balance</th>
+                                    <th class="pb-3 px-4">Credit Balance (उधारो)</th>
                                     <th class="pb-3 px-4">Actions</th>
                                 </tr>
                             </thead>
@@ -1025,6 +1054,16 @@
                         prod.stock += item.qty;
                         if (prod.firebaseId) {
                             await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                        }
+                    }
+                }
+
+                if (sale.paymentMethod === 'Credit' && sale.customerId) {
+                    const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
+                    if (cust) {
+                        cust.creditBalance = Math.max(0, (cust.creditBalance || 0) - sale.total);
+                        if (cust.firebaseId) {
+                            await db.collection('customers').doc(cust.firebaseId).update({ creditBalance: cust.creditBalance });
                         }
                     }
                 }
