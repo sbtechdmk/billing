@@ -118,7 +118,7 @@
         let sales = [];
         let systemUsers = [];
         let currentCart = [];
-        let currentDiscount = 0; // Discount in Rs.
+        let currentDiscount = 0;
         let activeTab = 'pos';
 
         auth.onAuthStateChanged(async function(user) {
@@ -313,7 +313,7 @@
             `;
         }
 
-        // --- POS SECTION WITH DISCOUNT ---
+        // --- POS SECTION ---
         function renderPOS() {
             const container = document.getElementById('tab-content');
             let itemsHTML = products.map(p => `
@@ -443,7 +443,6 @@
             currentDiscount = parseFloat(val) || 0;
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const grandTotal = Math.max(0, subtotal - currentDiscount);
-            // Dynamic UI update without full re-render
             const gtDisplay = document.querySelector('.text-green-400');
             if (gtDisplay) gtDisplay.innerText = `Rs. ${grandTotal.toLocaleString()}`;
         }
@@ -965,7 +964,7 @@
             showToast("Customer details updated!");
         }
 
-        // --- STATEMENTS SECTION WITH SALE CANCELLATION ---
+        // --- STATEMENTS SECTION WITH CANCELLATION ---
         function renderStatements() {
             if (!userPermissions.statements && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1020,7 +1019,6 @@
             if (!confirm(`के तपाईं निश्चित हुनुहुन्छ? यो बिल (${sale.id}) क्यान्सिल गर्दा सामानहरूको स्टक (Stock) स्वतः फिर्ता हुनेछ।`)) return;
 
             try {
-                // Restore Stock
                 for (let item of sale.items) {
                     const prod = products.find(p => p.id === item.id);
                     if (prod) {
@@ -1031,7 +1029,6 @@
                     }
                 }
 
-                // Update Sale status to cancelled
                 if (firebaseId) {
                     await db.collection('sales').doc(firebaseId).update({ status: 'cancelled' });
                 }
@@ -1248,7 +1245,7 @@
             showToast("Filters reset successfully!");
         }
 
-        // --- ADMIN USER CONTROL PANEL ---
+        // --- FULL ADMIN USER CONTROL PANEL WITH PERMISSIONS CONTROL ---
         function renderUsersTab() {
             if (userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1288,7 +1285,7 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-xl font-bold text-gray-100">User Control & Security Panel</h2>
-                            <p class="text-xs text-gray-400">Create users, send password reset links, toggle access, or delete users</p>
+                            <p class="text-xs text-gray-400">Create users, assign permissions, reset passwords, toggle access, or delete users</p>
                         </div>
                         <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
                             <i class="fa-solid fa-user-plus"></i> Create New User
@@ -1321,11 +1318,11 @@
                             <div><label class="block text-xs text-gray-400 mb-1">Initial Password</label><input type="password" id="new-user-pass" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm" placeholder="••••••••"></div>
                             <div class="space-y-2 pt-2 border-t border-gray-700">
                                 <label class="block text-xs text-gray-300 font-bold">Grant Access Permissions:</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="perm-pos" checked> POS & Billing</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="perm-products"> Stock & Inventory</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="perm-customers"> Credit Ledger</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="perm-statements"> Statements</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="perm-reports"> Reports</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="perm-pos" checked> POS & Billing</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="perm-products"> Stock & Inventory</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="perm-customers"> Credit Ledger</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="perm-statements"> Statements</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="perm-reports"> Reports</label>
                             </div>
                             <div class="flex gap-2 pt-2">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
@@ -1376,11 +1373,11 @@
                         <form onsubmit="saveUserPermissions(event, '${firebaseId}', ${idx})" class="space-y-3">
                             <div class="space-y-2 pt-2 border-t border-gray-700">
                                 <label class="block text-xs text-gray-300 font-bold">Permissions:</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="edit-perm-pos" ${p.pos ? 'checked' : ''}> POS & Billing</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="edit-perm-products" ${p.products ? 'checked' : ''}> Stock & Inventory</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="edit-perm-customers" ${p.customers ? 'checked' : ''}> Credit Ledger</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="edit-perm-statements" ${p.statements ? 'checked' : ''}> Statements</label>
-                                <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="edit-perm-reports" ${p.reports ? 'checked' : ''}> Reports</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="edit-perm-pos" ${p.pos ? 'checked' : ''}> POS & Billing</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="edit-perm-products" ${p.products ? 'checked' : ''}> Stock & Inventory</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="edit-perm-customers" ${p.customers ? 'checked' : ''}> Credit Ledger</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="edit-perm-statements" ${p.statements ? 'checked' : ''}> Statements</label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="edit-perm-reports" ${p.reports ? 'checked' : ''}> Reports</label>
                             </div>
                             <div class="flex gap-2 pt-3">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
