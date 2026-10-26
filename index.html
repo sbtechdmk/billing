@@ -64,7 +64,7 @@
                             <h1 class="font-extrabold text-sm text-white tracking-wide flex items-center gap-2">
                                 SB TECH <span id="role-badge" class="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full"></span>
                             </h1>
-                            <p class="text-xs text-gray-400">Damak-5, Jhapa | VAT: 600714930</p>
+                            <p class="text-xs text-gray-400">Damak-5, Jhapa, Nepal | VAT: 600714930</p>
                         </div>
                     </div>
 
@@ -522,7 +522,7 @@
             renderStatements();
         }
 
-        // Dedicated Receipt Printing Engine
+        // Dedicated Receipt Printing Engine (Fixed SB TECH Info & Dynamic Client Info)
         function printSaleInvoice(sale) {
             const printWindow = window.open('', '_blank', 'width=400,height=600');
             const itemsRows = sale.items.map(item => `
@@ -552,14 +552,15 @@
                     <div class="text-center">
                         <img src="${LOGO_SRC}" class="logo" alt="Logo">
                         <h2 style="margin: 2px 0; font-size: 16px;">SB TECH</h2>
-                        <p style="margin: 2px 0; font-size: 10px;">Damak-5, Jhapa | Phone: 9801234567</p>
+                        <p style="margin: 2px 0; font-size: 10px;">Damak-5, Jhapa, Nepal</p>
+                        <p style="margin: 2px 0; font-size: 10px;">Phone: 023-575959 / 9806050500</p>
                         <p style="margin: 2px 0; font-size: 10px;">VAT No: 600714930</p>
                     </div>
                     <div class="line"></div>
                     <div style="font-size: 10px;">
                         <p style="margin: 2px 0;"><strong>Invoice:</strong> ${sale.id}</p>
                         <p style="margin: 2px 0;"><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}</p>
-                        <p style="margin: 2px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
+                        <p style="margin: 2px 0;"><strong>Customer:</strong> ${sale.customerName || 'Walk-in Customer'}</p>
                         ${sale.customerAddress ? `<p style="margin: 2px 0;"><strong>Address:</strong> ${sale.customerAddress}</p>` : ''}
                         ${sale.customerPhone ? `<p style="margin: 2px 0;"><strong>Phone:</strong> ${sale.customerPhone}</p>` : ''}
                         <p style="margin: 2px 0;"><strong>Biller:</strong> ${sale.teller || 'Admin'}</p>
@@ -727,7 +728,7 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER & CUSTOMER DIRECTORY (Separate Columns) ---
+        // --- CREDIT LEDGER & CUSTOMER DIRECTORY ---
         function renderCustomers() {
             const container = document.getElementById('tab-content');
             let customerRows = customers.map((c, idx) => `
