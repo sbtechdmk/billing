@@ -42,7 +42,10 @@
                         <input type="email" id="login-email" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500" placeholder="admin@sbtech.com.np">
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Password</label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs text-gray-400">Password</label>
+                            <button type="button" onclick="sendForgotPasswordReset()" class="text-xs text-blue-400 hover:underline">Forgot Password?</button>
+                        </div>
                         <input type="password" id="login-password" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:border-blue-500" placeholder="••••••••">
                     </div>
                     <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 font-semibold text-white rounded-xl shadow-lg transition">Login to System</button>
@@ -189,6 +192,20 @@
                 showToast("Login Successful!");
             } catch (err) {
                 showToast("Invalid Email or Password!", "error");
+            }
+        }
+
+        async function sendForgotPasswordReset() {
+            const email = document.getElementById('login-email').value.trim();
+            if (!email) {
+                showToast("Please enter your Email Address first!", "error");
+                return;
+            }
+            try {
+                await auth.sendPasswordResetEmail(email);
+                showToast("Password reset link sent to your email (" + email + ")");
+            } catch (err) {
+                showToast("Reset Failed: " + err.message, "error");
             }
         }
 
@@ -1178,7 +1195,7 @@
                             <i class="fa-solid fa-user-gear"></i> Permissions
                         </button>
                         <button onclick="sendPasswordResetEmail('${u.email}')" class="px-2 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
-                            <i class="fa-solid fa-envelope"></i> Send Reset Link
+                            <i class="fa-solid fa-envelope"></i> Reset Link
                         </button>
                         <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" class="px-2 py-1 ${u.disabled ? 'bg-green-600/30 text-green-300' : 'bg-gray-600/30 text-gray-300'} rounded text-xs font-semibold">
                             <i class="fa-solid ${u.disabled ? 'fa-check' : 'fa-ban'}"></i> ${u.disabled ? 'Enable' : 'Disable'}
@@ -1328,7 +1345,6 @@
             }
         }
 
-        // --- SELF PASSWORD CHANGE (Direct Firebase Auth Update) ---
         function openChangeMyPasswordModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1359,7 +1375,6 @@
             }
 
             try {
-                // Directly Update Real Login Account Password in Firebase Auth
                 await currentUser.updatePassword(newPass);
                 closeModal();
                 showToast("Password updated in system! Please login again with your new password.");
