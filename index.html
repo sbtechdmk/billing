@@ -234,8 +234,8 @@
                     customers = custSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
                 } else {
                     customers = [
-                        { id: 'c1', name: 'Ram Bahadur', phone: '9801234567', creditBalance: 4500 },
-                        { id: 'c2', name: 'Sita Sharma', phone: '9842345678', creditBalance: 0 }
+                        { id: 'c1', name: 'Ram Bahadur', phone: '9801234567', address: 'Damak-5, Jhapa', creditBalance: 4500 },
+                        { id: 'c2', name: 'Sita Sharma', phone: '9842345678', address: 'Damak-3, Jhapa', creditBalance: 0 }
                     ];
                     for (let c of customers) await db.collection('customers').add(c);
                 }
@@ -334,23 +334,36 @@
 
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-24">
                         <div>
-                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
                                 <h2 class="font-bold text-lg text-gray-100">Current Order</h2>
                                 <button onclick="clearCart()" class="text-xs text-red-400">Clear</button>
                             </div>
-                            <div class="mb-4">
-                                <label class="block text-xs text-gray-400 mb-1">Customer</label>
-                                <select id="cart-customer" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
-                                    <option value="">Walk-in Customer</option>
-                                    ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'N/A'})</option>`).join('')}
-                                </select>
+                            
+                            <!-- Customer Selection & Manual Name Input -->
+                            <div class="space-y-2 mb-3">
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Select Existing Customer</label>
+                                    <select id="cart-customer-select" onchange="onSelectCustomerChange(this.value)" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
+                                        <option value="">-- Direct / Walk-in Customer --</option>
+                                        ${customers.map(c => `<option value="${c.id}">${c.name} (${c.phone || 'N/A'})</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Customer Name (ग्राहकको नाम)</label>
+                                    <input type="text" id="cart-customer-name" placeholder="Enter customer name..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Address & Phone (ठेगाना र फोन)</label>
+                                    <input type="text" id="cart-customer-info" placeholder="Damak, 9800000000" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
+                                </div>
                             </div>
-                            <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                                ${currentCart.length === 0 ? '<div class="text-center py-8 text-gray-500 text-sm">Cart is empty</div>' : cartHTML}
+
+                            <div class="space-y-2 max-h-[160px] overflow-y-auto pr-1 border-t border-gray-700/50 pt-2">
+                                ${currentCart.length === 0 ? '<div class="text-center py-6 text-gray-500 text-sm">Cart is empty</div>' : cartHTML}
                             </div>
                         </div>
 
-                        <div class="pt-4 border-t border-gray-700 space-y-3">
+                        <div class="pt-3 border-t border-gray-700 space-y-3">
                             <div class="flex justify-between text-lg font-bold">
                                 <span class="text-gray-300">Grand Total:</span>
                                 <span class="text-green-400">Rs. ${subtotal.toLocaleString()}</span>
@@ -370,6 +383,19 @@
                     </div>
                 </div>
             `;
+        }
+
+        function onSelectCustomerChange(custId) {
+            if (!custId) {
+                document.getElementById('cart-customer-name').value = '';
+                document.getElementById('cart-customer-info').value = '';
+                return;
+            }
+            const c = customers.find(cust => cust.id === custId);
+            if (c) {
+                document.getElementById('cart-customer-name').value = c.name;
+                document.getElementById('cart-customer-info').value = (c.address ? c.address + ', ' : '') + (c.phone || '');
+            }
         }
 
         function addToCart(prodId) {
@@ -419,8 +445,11 @@
 
         async function processCheckout() {
             if (currentCart.length === 0) { showToast("Cart is empty!", "error"); return; }
-            const customerId = document.getElementById('cart-customer').value;
-            const customerObj = customers.find(c => c.id === customerId);
+            const custSelectId = document.getElementById('cart-customer-select').value;
+            const customName = document.getElementById('cart-customer-name').value.trim();
+            const customInfo = document.getElementById('cart-customer-info').value.trim();
+
+            const finalCustomerName = customName || 'Walk-in Customer';
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'Cash';
             const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
@@ -428,8 +457,9 @@
                 id: 'INV-' + Date.now().toString().slice(-6),
                 date: new Date().toISOString(),
                 teller: currentUser.email,
-                customerName: customerObj ? customerObj.name : 'Walk-in Customer',
-                customerId: customerId || null,
+                customerName: finalCustomerName,
+                customerInfo: customInfo,
+                customerId: custSelectId || null,
                 items: [...currentCart],
                 total: total,
                 paymentMethod: paymentMethod,
@@ -519,6 +549,7 @@
                         <p style="margin: 2px 0;"><strong>Invoice:</strong> ${sale.id}</p>
                         <p style="margin: 2px 0;"><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}</p>
                         <p style="margin: 2px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
+                        ${sale.customerInfo ? `<p style="margin: 2px 0;"><strong>Info:</strong> ${sale.customerInfo}</p>` : ''}
                         <p style="margin: 2px 0;"><strong>Biller:</strong> ${sale.teller || 'Admin'}</p>
                         <p style="margin: 2px 0;"><strong>Payment:</strong> ${sale.paymentMethod}</p>
                         ${sale.status === 'cancelled' ? '<p style="color: red; font-weight: bold; text-align: center;">*** CANCELLED / RETURNED ***</p>' : ''}
@@ -684,20 +715,24 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER (View for Accountant & Admin, Manual Adjust for Admin Only) ---
+        // --- CREDIT LEDGER & CUSTOMER MANAGEMENT ---
         function renderCustomers() {
             const container = document.getElementById('tab-content');
             let customerRows = customers.map((c, idx) => `
                 <tr class="border-b border-gray-700/50 text-sm">
                     <td class="py-3 px-4 font-semibold text-gray-100">${c.name}</td>
                     <td class="py-3 px-4 text-gray-400">${c.phone || 'N/A'}</td>
+                    <td class="py-3 px-4 text-gray-400">${c.address || 'N/A'}</td>
                     <td class="py-3 px-4 text-red-400 font-bold">Rs. ${c.creditBalance.toLocaleString()}</td>
-                    <td class="py-3 px-4">
+                    <td class="py-3 px-4 flex items-center gap-2">
+                        <button onclick="openEditCustomerModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit Details
+                        </button>
                         ${userRole === 'admin' ? `
-                            <button onclick="openAdjustCreditModal('${c.firebaseId}',${idx})" class="px-2.5 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
-                                <i class="fa-solid fa-pen-to-square"></i> Adjust Credit
+                            <button onclick="openAdjustCreditModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
+                                <i class="fa-solid fa-coins"></i> Adjust Credit
                             </button>
-                        ` : '<span class="text-xs text-gray-500">Read-only</span>'}
+                        ` : ''}
                     </td>
                 </tr>
             `).join('');
@@ -706,18 +741,16 @@
                 <div class="space-y-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger (उधारो खाता)</h2>
-                            <p class="text-xs text-gray-400">${userRole === 'admin' ? 'Admin Mode: View and manually adjust customer balance' : 'Accountant Mode: View-only'}</p>
+                            <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger & Directory (ग्राहक खाता)</h2>
+                            <p class="text-xs text-gray-400">View/Edit customer details and manage credit balances</p>
                         </div>
-                        ${userRole === 'admin' ? `
-                            <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
-                                <i class="fa-solid fa-user-plus"></i> Add Customer
-                            </button>
-                        ` : ''}
+                        <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
+                            <i class="fa-solid fa-user-plus"></i> Add Customer
+                        </button>
                     </div>
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Customer Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Credit Balance</th><th class="pb-3 px-4">Action</th></tr></thead>
+                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Customer Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Address</th><th class="pb-3 px-4">Credit Balance</th><th class="pb-3 px-4">Actions</th></tr></thead>
                             <tbody>${customerRows}</tbody>
                         </table>
                     </div>
@@ -731,8 +764,9 @@
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
                         <h2 class="font-bold text-lg mb-4">Add New Customer</h2>
                         <form onsubmit="saveNewCustomer(event)" class="space-y-4">
-                            <div><label class="block text-xs text-gray-400 mb-1">Customer Name</label><input type="text" id="add-c-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1">Phone Number</label><input type="text" id="add-c-phone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Customer Name (ग्राहकको नाम)</label><input type="text" id="add-c-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Phone Number (फोन)</label><input type="text" id="add-c-phone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Address (ठेगाना)</label><input type="text" id="add-c-address" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div><label class="block text-xs text-gray-400 mb-1">Opening Credit Balance (Rs.)</label><input type="number" id="add-c-balance" value="0" min="0" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div class="flex gap-2 pt-2">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
@@ -750,13 +784,61 @@
                 id: 'c' + (customers.length + 1),
                 name: document.getElementById('add-c-name').value,
                 phone: document.getElementById('add-c-phone').value || '',
+                address: document.getElementById('add-c-address').value || '',
                 creditBalance: parseFloat(document.getElementById('add-c-balance').value) || 0
             };
             const docRef = await db.collection('customers').add(newCust);
             customers.push({ firebaseId: docRef.id, ...newCust });
             closeModal();
             renderCustomers();
-            showToast("Customer added!");
+            showToast("Customer added successfully!");
+        }
+
+        function openEditCustomerModal(firebaseId, idx) {
+            const customer = customers[idx];
+            if (!customer) return;
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-4">Edit Customer Details</h2>
+                        <form onsubmit="saveUpdatedCustomer(event, '${firebaseId}', ${idx})" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Customer Name (नाम)</label>
+                                <input type="text" id="edit-c-name" value="${customer.name}" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Phone Number (फोन)</label>
+                                <input type="text" id="edit-c-phone" value="${customer.phone || ''}" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Address (ठेगाना)</label>
+                                <input type="text" id="edit-c-address" value="${customer.address || ''}" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold">Update Details</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveUpdatedCustomer(e, firebaseId, idx) {
+            e.preventDefault();
+            const updatedData = {
+                name: document.getElementById('edit-c-name').value,
+                phone: document.getElementById('edit-c-phone').value || '',
+                address: document.getElementById('edit-c-address').value || ''
+            };
+
+            if (firebaseId) {
+                await db.collection('customers').doc(firebaseId).update(updatedData);
+            }
+            Object.assign(customers[idx], updatedData);
+            closeModal();
+            renderCustomers();
+            showToast("Customer details updated!");
         }
 
         function openAdjustCreditModal(firebaseId, idx) {
@@ -765,7 +847,7 @@
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
-                        <h2 class="font-bold text-lg mb-1">Manual Credit Ledger Adjustment (Admin)</h2>
+                        <h2 class="font-bold text-lg mb-1">Manual Credit Adjustment (Admin)</h2>
                         <p class="text-xs text-gray-400 mb-4">Adjust credit balance for: <strong class="text-white">${customer.name}</strong></p>
                         <form onsubmit="saveCreditAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
                             <div>
@@ -774,7 +856,7 @@
                             </div>
                             <div class="flex gap-2 pt-2">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
-                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold text-white">Update Balance</button>
+                                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-500 py-2.5 rounded-lg text-sm font-semibold text-white">Update Balance</button>
                             </div>
                         </form>
                     </div>
