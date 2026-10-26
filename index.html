@@ -71,6 +71,9 @@
 
                     <div class="flex items-center gap-3">
                         <span id="user-email-display" class="text-xs text-gray-300 hidden sm:inline"></span>
+                        <button onclick="openChangeMyPasswordModal()" class="px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-semibold rounded-lg transition border border-gray-600 flex items-center gap-1">
+                            <i class="fa-solid fa-key"></i> Change Password
+                        </button>
                         <button onclick="logout()" class="px-3 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white text-xs font-semibold rounded-lg transition border border-red-500/30">
                             <i class="fa-solid fa-right-from-bracket"></i> Logout
                         </button>
@@ -116,7 +119,6 @@
 
         auth.onAuthStateChanged(async function(user) {
             if (user) {
-                // Strict Verification Check
                 const isAllowed = await fetchUserPermissions(user.email);
                 if (!isAllowed) {
                     showToast("Access Denied: Unregistered or Disabled User!", "error");
@@ -150,13 +152,13 @@
                 const snap = await db.collection('users').where('email', '==', email).get();
                 if (!snap.empty) {
                     const data = snap.docs[0].data();
-                    if (data.disabled === true) return false; // Disabled user check
+                    if (data.disabled === true) return false;
 
                     userRole = data.role || 'teller';
                     userPermissions = data.permissions || { pos: true, products: false, customers: false, statements: false, reports: false, users: false };
                     return true;
                 } else {
-                    return false; // Not registered in system database
+                    return false;
                 }
             } catch (e) {
                 console.error("Error fetching permissions:", e);
@@ -170,7 +172,6 @@
             const pass = document.getElementById('login-password').value.trim();
             
             try {
-                // Check Firestore User Directory First before Login
                 if (email !== 'admin@sbtech.com.np') {
                     const checkUser = await db.collection('users').where('email', '==', email).get();
                     if (checkUser.empty) {
@@ -1174,9 +1175,12 @@
                     </td>
                     <td class="py-3 px-4 flex items-center gap-2">
                         <button onclick="openEditUserModal('${u.firebaseId}', ${idx})" class="px-2 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
-                            <i class="fa-solid fa-user-gear"></i> Edit
+                            <i class="fa-solid fa-user-gear"></i> Permissions
                         </button>
-                        <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" class="px-2 py-1 ${u.disabled ? 'bg-green-600/30 text-green-300' : 'bg-yellow-600/30 text-yellow-300'} rounded text-xs font-semibold">
+                        <button onclick="sendPasswordResetEmail('${u.email}')" class="px-2 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
+                            <i class="fa-solid fa-envelope"></i> Send Reset Link
+                        </button>
+                        <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" class="px-2 py-1 ${u.disabled ? 'bg-green-600/30 text-green-300' : 'bg-gray-600/30 text-gray-300'} rounded text-xs font-semibold">
                             <i class="fa-solid ${u.disabled ? 'fa-check' : 'fa-ban'}"></i> ${u.disabled ? 'Enable' : 'Disable'}
                         </button>
                         <button onclick="deleteUser('${u.firebaseId}', ${idx})" class="px-2 py-1 bg-red-600/30 text-red-300 hover:bg-red-600 hover:text-white rounded text-xs font-semibold">
@@ -1191,7 +1195,7 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-xl font-bold text-gray-100">User Control & Security Panel</h2>
-                            <p class="text-xs text-gray-400">Create users, set direct passwords, toggle status, or delete access</p>
+                            <p class="text-xs text-gray-400">Create users, send password reset links, toggle access, or delete users</p>
                         </div>
                         <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
                             <i class="fa-solid fa-user-plus"></i> Create New User
@@ -1253,11 +1257,9 @@
             };
 
             try {
-                // Register in Firebase Auth
                 await auth.createUserWithEmailAndPassword(email, pass);
                 
-                // Store in Firestore Database Directory
-                const newUserDoc = { email, password: pass, role: 'teller', permissions, disabled: false };
+                const newUserDoc = { email, role: 'teller', permissions, disabled: false };
                 const docRef = await db.collection('users').add(newUserDoc);
                 systemUsers.push({ firebaseId: docRef.id, ...newUserDoc });
 
@@ -1276,13 +1278,9 @@
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
-                        <h2 class="font-bold text-lg mb-2">Edit User Profile & Direct Password Set</h2>
+                        <h2 class="font-bold text-lg mb-2">Edit Access Permissions</h2>
                         <p class="text-xs text-gray-400 mb-4">User: <strong class="text-white">${u.email}</strong></p>
                         <form onsubmit="saveUserPermissions(event, '${firebaseId}', ${idx})" class="space-y-3">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Set New Password (Direct)</label>
-                                <input type="password" id="edit-user-pass" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm" placeholder="Leave blank to keep same">
-                            </div>
                             <div class="space-y-2 pt-2 border-t border-gray-700">
                                 <label class="block text-xs text-gray-300 font-bold">Permissions:</label>
                                 <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="edit-perm-pos" ${p.pos ? 'checked' : ''}> POS & Billing</label>
@@ -1303,7 +1301,6 @@
 
         async function saveUserPermissions(e, firebaseId, idx) {
             e.preventDefault();
-            const newPass = document.getElementById('edit-user-pass').value.trim();
             const permissions = {
                 pos: document.getElementById('edit-perm-pos').checked,
                 products: document.getElementById('edit-perm-products').checked,
@@ -1312,19 +1309,68 @@
                 reports: document.getElementById('edit-perm-reports').checked
             };
 
-            const updateData = { permissions };
-            if (newPass) updateData.password = newPass;
-
             if (firebaseId) {
-                await db.collection('users').doc(firebaseId).update(updateData);
+                await db.collection('users').doc(firebaseId).update({ permissions });
             }
 
             systemUsers[idx].permissions = permissions;
-            if (newPass) systemUsers[idx].password = newPass;
-
             closeModal();
             renderUsersTab();
-            showToast("User updated successfully!");
+            showToast("Permissions updated successfully!");
+        }
+
+        async function sendPasswordResetEmail(email) {
+            try {
+                await auth.sendPasswordResetEmail(email);
+                showToast("Password Reset Link sent to " + email);
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            }
+        }
+
+        // --- SELF PASSWORD CHANGE (Direct Firebase Auth Update) ---
+        function openChangeMyPasswordModal() {
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-1">Change Account Password</h2>
+                        <p class="text-xs text-gray-400 mb-4">Direct password update for: <strong class="text-white">${currentUser.email}</strong></p>
+                        <form onsubmit="handleSelfPasswordChange(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">New Password (नयाँ पासवर्ड)</label>
+                                <input type="password" id="my-new-password" required minlength="6" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white" placeholder="Minimum 6 characters">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold">Update Password Now</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function handleSelfPasswordChange(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('my-new-password').value.trim();
+            if (!newPass || newPass.length < 6) {
+                showToast("Password must be at least 6 characters!", "error");
+                return;
+            }
+
+            try {
+                // Directly Update Real Login Account Password in Firebase Auth
+                await currentUser.updatePassword(newPass);
+                closeModal();
+                showToast("Password updated in system! Please login again with your new password.");
+                setTimeout(() => logout(), 1500);
+            } catch (err) {
+                if (err.code === 'auth/requires-recent-login') {
+                    showToast("Security Check: Please logout and login again before changing password.", "error");
+                } else {
+                    showToast("Password update failed: " + err.message, "error");
+                }
+            }
         }
 
         async function toggleUserStatus(firebaseId, idx) {
