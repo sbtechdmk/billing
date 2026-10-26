@@ -522,7 +522,7 @@
             renderStatements();
         }
 
-        // Dedicated Receipt Printing Engine (Fixed SB TECH Info & Dynamic Client Info)
+        // Dedicated Receipt Printing Engine
         function printSaleInvoice(sale) {
             const printWindow = window.open('', '_blank', 'width=400,height=600');
             const itemsRows = sale.items.map(item => `
@@ -870,7 +870,7 @@
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
                         <h2 class="font-bold text-lg mb-1">Manual Credit Adjustment (Admin)</h2>
                         <p class="text-xs text-gray-400 mb-4">Adjust credit balance for: <strong class="text-white">${customer.name}</strong></p>
-                        <form onsubmit="saveCreditAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                        <form onsubmit="saveCreditAdjustment(event, '${firebaseId}',${idx})" class="space-y-4">
                             <div>
                                 <label class="block text-xs text-gray-400 mb-1">New Credit Balance (Rs.)</label>
                                 <input type="number" id="adjust-c-balance" value="${customer.creditBalance}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-red-400">
@@ -906,7 +906,7 @@
                 const isCancelled = s.status === 'cancelled';
                 return `
                     <tr class="border-b border-gray-700 text-sm ${isCancelled ? 'opacity-50 bg-red-950/20' : ''}">
-                        <td class="py-3 px-4 font-mono text-blue-400">${s.id} ${isCancelled ? '<span class="text-xs text-red-400 font-bold">(CANCELLED)</span>' : ''}</td>
+                        <td class="py-3 px-4 font-mono text-blue-400">${s.id}${isCancelled ? '<span class="text-xs text-red-400 font-bold">(CANCELLED)</span>' : ''}</td>
                         <td class="py-3 px-4">${new Date(s.date).toLocaleString()}</td>
                         <td class="py-3 px-4">${s.customerName}</td>
                         <td class="py-3 px-4">${s.teller || 'Admin'}</td>
@@ -940,36 +940,117 @@
             `;
         }
 
-        // --- REPORTS (Excludes cancelled sales) ---
+        // --- ADVANCED REPORTS WITH DATE, ITEM & CLIENT FILTERS ---
         function renderReports() {
             const container = document.getElementById('tab-content');
-            const activeSales = sales.filter(s => s.status !== 'cancelled');
-            const totalRevenue = activeSales.reduce((acc, s) => acc + s.total, 0);
-            const cashTotal = activeSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
-            const fonepayTotal = activeSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
+            
+            // Default filter values (1 year range)
+            const todayStr = new Date().toISOString().split('T')[0];
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <h2 class="text-xl font-bold text-gray-100">Daily & Financial Reports (Net of Returns)</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                            <p class="text-xs text-gray-400 uppercase">Net Revenue</p>
-                            <h3 class="text-2xl font-bold text-green-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-100">Advanced Financial & Sales Reports</h2>
+                            <p class="text-xs text-gray-400">Filter by Date Range, Item, and Client for up to 1 Year analysis</p>
                         </div>
-                        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                            <p class="text-xs text-gray-400 uppercase">Cash Collections</p>
-                            <h3 class="text-2xl font-bold text-blue-400 mt-1">Rs. ${cashTotal.toLocaleString()}</h3>
+                    </div>
+
+                    <!-- Filter Controls Box -->
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">From Date (देखि)</label>
+                            <input type="date" id="rep-from-date" value="${oneYearAgoStr}" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
                         </div>
-                        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                            <p class="text-xs text-gray-400 uppercase">Fonepay Collections</p>
-                            <h3 class="text-2xl font-bold text-purple-400 mt-1">Rs. ${fonepayTotal.toLocaleString()}</h3>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">To Date (सम्म)</label>
+                            <input type="date" id="rep-to-date" value="${todayStr}" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
                         </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Filter by Item (सामान)</label>
+                            <input type="text" id="rep-item-filter" placeholder="e.g. Laptop, CCTV" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Filter by Client (ग्राहकको नाम)</label>
+                            <input type="text" id="rep-client-filter" placeholder="e.g. Ram Bahadur" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
+                        </div>
+                        <div class="sm:col-span-2 lg:col-span-4 flex justify-end gap-2 pt-2">
+                            <button onclick="applyReportFilters()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-semibold text-white transition shadow-lg">
+                                <i class="fa-solid fa-filter"></i> Apply Filters
+                            </button>
+                            <button onclick="resetReportFilters()" class="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl text-sm font-semibold text-gray-300 transition">
+                                <i class="fa-solid fa-rotate-right"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Injected via updateReportResults -->
+                    </div>
+
+                    <!-- Detailed Filtered Sales Table -->
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
+                        <h3 class="font-bold text-sm text-gray-200 mb-3">Filtered Transaction Records</h3>
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b border-gray-700 text-xs text-gray-400 uppercase">
+                                    <th class="pb-3 px-4">Invoice #</th>
+                                    <th class="pb-3 px-4">Date</th>
+                                    <th class="pb-3 px-4">Client Name</th>
+                                    <th class="pb-3 px-4">Items Sold</th>
+                                    <th class="pb-3 px-4">Mode</th>
+                                    <th class="pb-3 px-4">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body">
+                                <!-- Injected via updateReportResults -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             `;
+
+            applyReportFilters(); // Initial render with default 1 year filter
         }
 
-        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
-    </script>
-</body>
-</html>
+        function applyReportFilters() {
+            const fromDateVal = document.getElementById('rep-from-date').value;
+            const toDateVal = document.getElementById('rep-to-date').value;
+            const itemQuery = document.getElementById('rep-item-filter').value.toLowerCase().trim();
+            const clientQuery = document.getElementById('rep-client-filter').value.toLowerCase().trim();
+
+            const fromDate = fromDateVal ? new Date(fromDateVal + 'T00:00:00') : null;
+            const toDate = toDateVal ? new Date(toDateVal + 'T23:59:59') : null;
+
+            // Filter sales (exclude cancelled)
+            const filteredSales = sales.filter(s => {
+                if (s.status === 'cancelled') return false;
+                
+                const saleDate = new Date(s.date);
+                if (fromDate && saleDate < fromDate) return false;
+                if (toDate && saleDate > toDate) return false;
+
+                if (clientQuery && !s.customerName.toLowerCase().includes(clientQuery)) return false;
+
+                if (itemQuery) {
+                    const hasItem = s.items.some(i => i.name.toLowerCase().includes(itemQuery));
+                    if (!hasItem) return false;
+                }
+
+                return true;
+            });
+
+            // Calculate totals
+            const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
+            const cashTotal = filteredSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
+            const fonepayTotal = filteredSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
+
+            // Render summary cards
+            document.getElementById('report-summary-cards').innerHTML = `
+                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase">Filtered Net Revenue</p>
+                    <h3 class="text-
