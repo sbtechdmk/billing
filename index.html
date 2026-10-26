@@ -339,7 +339,7 @@
                                 <button onclick="clearCart()" class="text-xs text-red-400">Clear</button>
                             </div>
                             
-                            <!-- Customer Selection & Manual Name Input -->
+                            <!-- Customer Selection & Separate Name, Address, Phone Inputs -->
                             <div class="space-y-2 mb-3">
                                 <div>
                                     <label class="block text-xs text-gray-400 mb-1">Select Existing Customer</label>
@@ -350,16 +350,22 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs text-gray-400 mb-1">Customer Name (ग्राहकको नाम)</label>
-                                    <input type="text" id="cart-customer-name" placeholder="Enter customer name..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
+                                    <input type="text" id="pos-customer-name" placeholder="Type customer name..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
                                 </div>
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Address & Phone (ठेगाना र फोन)</label>
-                                    <input type="text" id="cart-customer-info" placeholder="Damak, 9800000000" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-400 mb-1">Address (ठेगाना)</label>
+                                        <input type="text" id="pos-customer-address" placeholder="Damak" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-400 mb-1">Phone (फोन नम्बर)</label>
+                                        <input type="text" id="pos-customer-phone" placeholder="9800000000" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100">
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="space-y-2 max-h-[160px] overflow-y-auto pr-1 border-t border-gray-700/50 pt-2">
-                                ${currentCart.length === 0 ? '<div class="text-center py-6 text-gray-500 text-sm">Cart is empty</div>' : cartHTML}
+                            <div class="space-y-2 max-h-[140px] overflow-y-auto pr-1 border-t border-gray-700/50 pt-2">
+                                ${currentCart.length === 0 ? '<div class="text-center py-4 text-gray-500 text-sm">Cart is empty</div>' : cartHTML}
                             </div>
                         </div>
 
@@ -387,14 +393,16 @@
 
         function onSelectCustomerChange(custId) {
             if (!custId) {
-                document.getElementById('cart-customer-name').value = '';
-                document.getElementById('cart-customer-info').value = '';
+                document.getElementById('pos-customer-name').value = '';
+                document.getElementById('pos-customer-address').value = '';
+                document.getElementById('pos-customer-phone').value = '';
                 return;
             }
             const c = customers.find(cust => cust.id === custId);
             if (c) {
-                document.getElementById('cart-customer-name').value = c.name;
-                document.getElementById('cart-customer-info').value = (c.address ? c.address + ', ' : '') + (c.phone || '');
+                document.getElementById('pos-customer-name').value = c.name || '';
+                document.getElementById('pos-customer-address').value = c.address || '';
+                document.getElementById('pos-customer-phone').value = c.phone || '';
             }
         }
 
@@ -445,11 +453,13 @@
 
         async function processCheckout() {
             if (currentCart.length === 0) { showToast("Cart is empty!", "error"); return; }
+            
             const custSelectId = document.getElementById('cart-customer-select').value;
-            const customName = document.getElementById('cart-customer-name').value.trim();
-            const customInfo = document.getElementById('cart-customer-info').value.trim();
+            const inputName = document.getElementById('pos-customer-name').value.trim();
+            const inputAddress = document.getElementById('pos-customer-address').value.trim();
+            const inputPhone = document.getElementById('pos-customer-phone').value.trim();
 
-            const finalCustomerName = customName || 'Walk-in Customer';
+            const finalCustomerName = inputName || 'Walk-in Customer';
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'Cash';
             const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
@@ -458,7 +468,8 @@
                 date: new Date().toISOString(),
                 teller: currentUser.email,
                 customerName: finalCustomerName,
-                customerInfo: customInfo,
+                customerAddress: inputAddress,
+                customerPhone: inputPhone,
                 customerId: custSelectId || null,
                 items: [...currentCart],
                 total: total,
@@ -549,7 +560,8 @@
                         <p style="margin: 2px 0;"><strong>Invoice:</strong> ${sale.id}</p>
                         <p style="margin: 2px 0;"><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}</p>
                         <p style="margin: 2px 0;"><strong>Customer:</strong> ${sale.customerName}</p>
-                        ${sale.customerInfo ? `<p style="margin: 2px 0;"><strong>Info:</strong> ${sale.customerInfo}</p>` : ''}
+                        ${sale.customerAddress ? `<p style="margin: 2px 0;"><strong>Address:</strong> ${sale.customerAddress}</p>` : ''}
+                        ${sale.customerPhone ? `<p style="margin: 2px 0;"><strong>Phone:</strong> ${sale.customerPhone}</p>` : ''}
                         <p style="margin: 2px 0;"><strong>Biller:</strong> ${sale.teller || 'Admin'}</p>
                         <p style="margin: 2px 0;"><strong>Payment:</strong> ${sale.paymentMethod}</p>
                         ${sale.status === 'cancelled' ? '<p style="color: red; font-weight: bold; text-align: center;">*** CANCELLED / RETURNED ***</p>' : ''}
@@ -715,22 +727,22 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER & CUSTOMER MANAGEMENT ---
+        // --- CREDIT LEDGER & CUSTOMER DIRECTORY (Separate Columns) ---
         function renderCustomers() {
             const container = document.getElementById('tab-content');
             let customerRows = customers.map((c, idx) => `
                 <tr class="border-b border-gray-700/50 text-sm">
                     <td class="py-3 px-4 font-semibold text-gray-100">${c.name}</td>
-                    <td class="py-3 px-4 text-gray-400">${c.phone || 'N/A'}</td>
-                    <td class="py-3 px-4 text-gray-400">${c.address || 'N/A'}</td>
+                    <td class="py-3 px-4 text-gray-300">${c.phone || 'N/A'}</td>
+                    <td class="py-3 px-4 text-gray-300">${c.address || 'N/A'}</td>
                     <td class="py-3 px-4 text-red-400 font-bold">Rs. ${c.creditBalance.toLocaleString()}</td>
                     <td class="py-3 px-4 flex items-center gap-2">
                         <button onclick="openEditCustomerModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
-                            <i class="fa-solid fa-pen-to-square"></i> Edit Details
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
                         ${userRole === 'admin' ? `
                             <button onclick="openAdjustCreditModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
-                                <i class="fa-solid fa-coins"></i> Adjust Credit
+                                <i class="fa-solid fa-coins"></i> Credit
                             </button>
                         ` : ''}
                     </td>
@@ -741,8 +753,8 @@
                 <div class="space-y-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger & Directory (ग्राहक खाता)</h2>
-                            <p class="text-xs text-gray-400">View/Edit customer details and manage credit balances</p>
+                            <h2 class="text-xl font-bold text-gray-100">Customer Directory & Credit Ledger</h2>
+                            <p class="text-xs text-gray-400">Separate columns for Name, Phone, Address and Credit Balance</p>
                         </div>
                         <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
                             <i class="fa-solid fa-user-plus"></i> Add Customer
@@ -750,7 +762,15 @@
                     </div>
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead><tr class="border-b border-gray-700 text-xs text-gray-400 uppercase"><th class="pb-3 px-4">Customer Name</th><th class="pb-3 px-4">Phone</th><th class="pb-3 px-4">Address</th><th class="pb-3 px-4">Credit Balance</th><th class="pb-3 px-4">Actions</th></tr></thead>
+                            <thead>
+                                <tr class="border-b border-gray-700 text-xs text-gray-400 uppercase">
+                                    <th class="pb-3 px-4">Customer Name</th>
+                                    <th class="pb-3 px-4">Phone Number</th>
+                                    <th class="pb-3 px-4">Address</th>
+                                    <th class="pb-3 px-4">Credit Balance</th>
+                                    <th class="pb-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
                             <tbody>${customerRows}</tbody>
                         </table>
                     </div>
@@ -764,9 +784,9 @@
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
                         <h2 class="font-bold text-lg mb-4">Add New Customer</h2>
                         <form onsubmit="saveNewCustomer(event)" class="space-y-4">
-                            <div><label class="block text-xs text-gray-400 mb-1">Customer Name (ग्राहकको नाम)</label><input type="text" id="add-c-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1">Phone Number (फोन)</label><input type="text" id="add-c-phone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1">Address (ठेगाना)</label><input type="text" id="add-c-address" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Customer Name</label><input type="text" id="add-c-name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Phone Number</label><input type="text" id="add-c-phone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">Address</label><input type="text" id="add-c-address" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div><label class="block text-xs text-gray-400 mb-1">Opening Credit Balance (Rs.)</label><input type="number" id="add-c-balance" value="0" min="0" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm"></div>
                             <div class="flex gap-2 pt-2">
                                 <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
@@ -803,15 +823,15 @@
                         <h2 class="font-bold text-lg mb-4">Edit Customer Details</h2>
                         <form onsubmit="saveUpdatedCustomer(event, '${firebaseId}', ${idx})" class="space-y-4">
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Customer Name (नाम)</label>
+                                <label class="block text-xs text-gray-400 mb-1">Customer Name</label>
                                 <input type="text" id="edit-c-name" value="${customer.name}" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Phone Number (फोन)</label>
+                                <label class="block text-xs text-gray-400 mb-1">Phone Number</label>
                                 <input type="text" id="edit-c-phone" value="${customer.phone || ''}" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Address (ठेगाना)</label>
+                                <label class="block text-xs text-gray-400 mb-1">Address</label>
                                 <input type="text" id="edit-c-address" value="${customer.address || ''}" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
                             </div>
                             <div class="flex gap-2 pt-2">
