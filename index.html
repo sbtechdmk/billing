@@ -12,6 +12,9 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- SheetJS for Excel Import/Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <!-- Firebase App, Auth & Firestore SDK (Compat Mode) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -603,7 +606,7 @@
             printWindow.document.close();
         }
 
-        // --- INVENTORY (Admin Only) ---
+        // --- INVENTORY (Admin Only) WITH EXCEL IMPORT / EXPORT ---
         function renderProducts() {
             if (userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -616,7 +619,7 @@
                     <td class="py-3 px-4 font-semibold text-blue-300">${p.stock} units</td>
                     <td class="py-3 px-4 flex items-center gap-2">
                         <button onclick="openAdjustStockModal('${p.firebaseId}', ${idx})" class="px-2.5 py-1 bg-yellow-600/30 text-yellow-300 hover:bg-yellow-600 hover:text-white rounded text-xs font-semibold">
-                            <i class="fa-solid fa-sliders"></i> Adjust Stock
+                            <i class="fa-solid fa-sliders"></i> Adjust
                         </button>
                         <button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-red-400 bg-red-900/30 hover:bg-red-600 hover:text-white p-1.5 rounded transition">
                             <i class="fa-solid fa-trash"></i>
@@ -627,14 +630,23 @@
 
             container.innerHTML = `
                 <div class="space-y-6">
-                    <div class="flex justify-between items-center">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-100">Inventory Management & Manual Stock Adjust</h2>
-                            <p class="text-xs text-gray-400">Admin-only panel to add items or adjust current stock levels</p>
+                            <h2 class="text-xl font-bold text-gray-100">Inventory Management & Excel Integration</h2>
+                            <p class="text-xs text-gray-400">Export current stock to Excel or upload/import Excel file to bulk add/update stock</p>
                         </div>
-                        <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
-                            <i class="fa-solid fa-plus"></i> Add Product
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="exportStockExcel()" class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded-xl text-sm font-semibold text-white transition shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel"></i> Export Excel
+                            </button>
+                            <label class="bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded-xl text-sm font-semibold text-white transition shadow-md cursor-pointer flex items-center gap-2">
+                                <i class="fa-solid fa-file-import"></i> Import Excel
+                                <input type="file" accept=".xlsx, .xls, .csv" onchange="importStockExcel(event)" class="hidden">
+                            </label>
+                            <button onclick="openAddProductModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-plus"></i> Add Product
+                            </button>
+                        </div>
                     </div>
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
                         <table class="w-full text-left">
@@ -644,6 +656,67 @@
                     </div>
                 </div>
             `;
+        }
+
+        function exportStockExcel() {
+            const data = products.map(p => ({
+                ID: p.id,
+                Name: p.name,
+                Category: p.category || 'General',
+                Price: p.price,
+                Stock: p.stock
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory_Stock");
+            XLSX.writeFile(workbook, "SBTECH_Inventory_Stock.xlsx");
+            showToast("Stock exported to Excel successfully!");
+        }
+
+        async function importStockExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+
+                    let count = 0;
+                    for (let row of json) {
+                        const name = row.Name || row.name;
+                        const price = parseFloat(row.Price || row.price || 0);
+                        const stock = parseInt(row.Stock || row.stock || 0);
+                        const category = row.Category || row.category || 'General';
+                        const id = String(row.ID || row.id || (100 + products.length + 1));
+
+                        if (!name) continue;
+
+                        const existing = products.find(p => p.id === id || p.name.toLowerCase() === name.toLowerCase());
+                        if (existing) {
+                            existing.stock = stock;
+                            existing.price = price;
+                            if (existing.firebaseId) {
+                                await db.collection('products').doc(existing.firebaseId).update({ stock, price });
+                            }
+                        } else {
+                            const newProd = { id, name, price, stock, category };
+                            const docRef = await db.collection('products').add(newProd);
+                            products.push({ firebaseId: docRef.id, ...newProd });
+                        }
+                        count++;
+                    }
+                    renderProducts();
+                    showToast(`Successfully imported/updated ${count} products!`);
+                } catch (err) {
+                    console.error(err);
+                    showToast("Failed to parse Excel file", "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function openAddProductModal() {
@@ -940,11 +1013,10 @@
             `;
         }
 
-        // --- ADVANCED REPORTS WITH DATE, ITEM & CLIENT FILTERS ---
+        // --- ADVANCED REPORTS WITH EXCEL & PDF EXPORT ---
         function renderReports() {
             const container = document.getElementById('tab-content');
             
-            // Default filter values (1 year range)
             const todayStr = new Date().toISOString().split('T')[0];
             const oneYearAgo = new Date();
             oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -955,7 +1027,15 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 class="text-xl font-bold text-gray-100">Advanced Financial & Sales Reports</h2>
-                            <p class="text-xs text-gray-400">Filter by Date Range, Item, and Client for up to 1 Year analysis</p>
+                            <p class="text-xs text-gray-400">Filter by Date Range, Item, and Client with Excel & PDF Export</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportReportExcel()" class="px-4 py-2.5 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-semibold text-white transition shadow-lg flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel"></i> Export Excel
+                            </button>
+                            <button onclick="printReportPDF()" class="px-4 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-semibold text-white transition shadow-lg flex items-center gap-2">
+                                <i class="fa-solid fa-file-pdf"></i> Print PDF Report
+                            </button>
                         </div>
                     </div>
 
@@ -988,9 +1068,7 @@
                     </div>
 
                     <!-- Summary Cards -->
-                    <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <!-- Injected via updateReportResults -->
-                    </div>
+                    <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
 
                     <!-- Detailed Filtered Sales Table -->
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
@@ -1006,50 +1084,44 @@
                                     <th class="pb-3 px-4">Total Amount</th>
                                 </tr>
                             </thead>
-                            <tbody id="report-table-body">
-                                <!-- Injected via updateReportResults -->
-                            </tbody>
+                            <tbody id="report-table-body"></tbody>
                         </table>
                     </div>
                 </div>
             `;
 
-            applyReportFilters(); // Initial render with default 1 year filter
+            applyReportFilters();
         }
 
-        function applyReportFilters() {
-            const fromDateVal = document.getElementById('rep-from-date').value;
-            const toDateVal = document.getElementById('rep-to-date').value;
-            const itemQuery = document.getElementById('rep-item-filter').value.toLowerCase().trim();
-            const clientQuery = document.getElementById('rep-client-filter').value.toLowerCase().trim();
+        function getFilteredReportSales() {
+            const fromDateVal = document.getElementById('rep-from-date')?.value;
+            const toDateVal = document.getElementById('rep-to-date')?.value;
+            const itemQuery = document.getElementById('rep-item-filter')?.value.toLowerCase().trim() || '';
+            const clientQuery = document.getElementById('rep-client-filter')?.value.toLowerCase().trim() || '';
 
             const fromDate = fromDateVal ? new Date(fromDateVal + 'T00:00:00') : null;
             const toDate = toDateVal ? new Date(toDateVal + 'T23:59:59') : null;
 
-            // Filter sales (exclude cancelled)
-            const filteredSales = sales.filter(s => {
+            return sales.filter(s => {
                 if (s.status === 'cancelled') return false;
-                
                 const saleDate = new Date(s.date);
                 if (fromDate && saleDate < fromDate) return false;
                 if (toDate && saleDate > toDate) return false;
-
                 if (clientQuery && !s.customerName.toLowerCase().includes(clientQuery)) return false;
-
                 if (itemQuery) {
                     const hasItem = s.items.some(i => i.name.toLowerCase().includes(itemQuery));
                     if (!hasItem) return false;
                 }
-
                 return true;
             });
+        }
 
-            // Calculate totals
+        function applyReportFilters() {
+            const filteredSales = getFilteredReportSales();
             const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
             const cashTotal = filteredSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
             const fonepayTotal = filteredSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
 
-            // Render summary cards
             document.getElementById('report-summary-cards').innerHTML = `
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
                     <p class="text-xs text-gray-400 uppercase">Filtered Net Revenue</p>
@@ -1065,7 +1137,6 @@
                 </div>
             `;
 
-            // Render table rows
             const rowsHTML = filteredSales.map(s => {
                 const itemsStr = s.items.map(i => `${i.name} (x${i.qty})`).join(', ');
                 return `
@@ -1083,6 +1154,88 @@
             document.getElementById('report-table-body').innerHTML = filteredSales.length === 0 
                 ? '<tr><td colspan="6" class="text-center py-6 text-gray-500">No records found matching your filters</td></tr>' 
                 : rowsHTML;
+        }
+
+        function exportReportExcel() {
+            const filteredSales = getFilteredReportSales();
+            const data = filteredSales.map(s => ({
+                Invoice: s.id,
+                Date: new Date(s.date).toLocaleString(),
+                ClientName: s.customerName,
+                Phone: s.customerPhone || 'N/A',
+                Address: s.customerAddress || 'N/A',
+                Items: s.items.map(i => `${i.name} (x${i.qty})`).join(', '),
+                PaymentMode: s.paymentMethod || 'Cash',
+                TotalAmount: s.total
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sales_Report");
+            XLSX.writeFile(workbook, "SBTECH_Sales_Report.xlsx");
+            showToast("Report exported to Excel successfully!");
+        }
+
+        function printReportPDF() {
+            const filteredSales = getFilteredReportSales();
+            const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
+            
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            const rowsHTML = filteredSales.map(s => `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.id}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${new Date(s.date).toLocaleString()}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.customerName}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.items.map(i => `${i.name} (${i.qty})`).join(', ')}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; text-align: right;">Rs. ${s.total.toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+            const content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>SB TECH - Financial Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
+                        .text-center { text-align: center; }
+                        h2, p { margin: 2px 0; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                        th { background: #f2f2f2; border: 1px solid #ddd; padding: 6px; font-size: 11px; text-align: left; }
+                    </style>
+                </head>
+                <body>
+                    <div class="text-center">
+                        <h2>SB TECH</h2>
+                        <p style="font-size: 12px;">Damak-5, Jhapa, Nepal | Phone: 023-575959 / 9806050500</p>
+                        <p style="font-size: 12px;">VAT No: 600714930</p>
+                        <p style="font-size: 14px; margin-top: 8px;"><strong>Advanced Sales & Client Report</strong></p>
+                    </div>
+                    <hr style="margin: 10px 0;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Date</th>
+                                <th>Client Name</th>
+                                <th>Items</th>
+                                <th style="text-align: right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHTML}</tbody>
+                    </table>
+                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Net Revenue: Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(() => window.close(), 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+            printWindow.document.write(content);
+            printWindow.document.close();
         }
 
         function resetReportFilters() {
