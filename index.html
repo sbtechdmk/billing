@@ -870,7 +870,7 @@
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
                         <h2 class="font-bold text-lg mb-1">Manual Credit Adjustment (Admin)</h2>
                         <p class="text-xs text-gray-400 mb-4">Adjust credit balance for: <strong class="text-white">${customer.name}</strong></p>
-                        <form onsubmit="saveCreditAdjustment(event, '${firebaseId}',${idx})" class="space-y-4">
+                        <form onsubmit="saveCreditAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
                             <div>
                                 <label class="block text-xs text-gray-400 mb-1">New Credit Balance (Rs.)</label>
                                 <input type="number" id="adjust-c-balance" value="${customer.creditBalance}" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-red-400">
@@ -906,7 +906,7 @@
                 const isCancelled = s.status === 'cancelled';
                 return `
                     <tr class="border-b border-gray-700 text-sm ${isCancelled ? 'opacity-50 bg-red-950/20' : ''}">
-                        <td class="py-3 px-4 font-mono text-blue-400">${s.id}${isCancelled ? '<span class="text-xs text-red-400 font-bold">(CANCELLED)</span>' : ''}</td>
+                        <td class="py-3 px-4 font-mono text-blue-400">${s.id} ${isCancelled ? '<span class="text-xs text-red-400 font-bold">(CANCELLED)</span>' : ''}</td>
                         <td class="py-3 px-4">${new Date(s.date).toLocaleString()}</td>
                         <td class="py-3 px-4">${s.customerName}</td>
                         <td class="py-3 px-4">${s.teller || 'Admin'}</td>
@@ -1053,4 +1053,53 @@
             document.getElementById('report-summary-cards').innerHTML = `
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
                     <p class="text-xs text-gray-400 uppercase">Filtered Net Revenue</p>
-                    <h3 class="text-
+                    <h3 class="text-2xl font-bold text-green-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase">Cash Collections</p>
+                    <h3 class="text-2xl font-bold text-blue-400 mt-1">Rs. ${cashTotal.toLocaleString()}</h3>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase">Fonepay Collections</p>
+                    <h3 class="text-2xl font-bold text-purple-400 mt-1">Rs. ${fonepayTotal.toLocaleString()}</h3>
+                </div>
+            `;
+
+            // Render table rows
+            const rowsHTML = filteredSales.map(s => {
+                const itemsStr = s.items.map(i => `${i.name} (x${i.qty})`).join(', ');
+                return `
+                    <tr class="border-b border-gray-700/50 text-sm">
+                        <td class="py-3 px-4 font-mono text-blue-400">${s.id}</td>
+                        <td class="py-3 px-4">${new Date(s.date).toLocaleString()}</td>
+                        <td class="py-3 px-4 font-semibold text-gray-200">${s.customerName}</td>
+                        <td class="py-3 px-4 text-gray-300 text-xs">${itemsStr}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-0.5 bg-gray-700 rounded text-xs">${s.paymentMethod || 'Cash'}</span></td>
+                        <td class="py-3 px-4 font-bold text-green-400">Rs. ${s.total.toLocaleString()}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('report-table-body').innerHTML = filteredSales.length === 0 
+                ? '<tr><td colspan="6" class="text-center py-6 text-gray-500">No records found matching your filters</td></tr>' 
+                : rowsHTML;
+        }
+
+        function resetReportFilters() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+
+            document.getElementById('rep-from-date').value = oneYearAgoStr;
+            document.getElementById('rep-to-date').value = todayStr;
+            document.getElementById('rep-item-filter').value = '';
+            document.getElementById('rep-client-filter').value = '';
+            applyReportFilters();
+            showToast("Filters reset successfully!");
+        }
+
+        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+    </script>
+</body>
+</html>
