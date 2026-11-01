@@ -313,7 +313,7 @@
             `;
         }
 
-        // --- POS SECTION WITH CREDIT PAYMENT OPTION ---
+        // --- POS SECTION ---
         function renderPOS() {
             const container = document.getElementById('tab-content');
             let itemsHTML = products.map(p => `
@@ -525,7 +525,6 @@
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const total = Math.max(0, subtotal - currentDiscount);
 
-            // If Credit sale, check if customer is selected
             if (paymentMethod === 'Credit' && !custSelectId) {
                 showToast("Please select an existing customer from dropdown for Credit sale!", "error");
                 return;
@@ -547,7 +546,6 @@
                 status: 'completed'
             };
 
-            // Deduct stock
             for (let cartItem of currentCart) {
                 const prod = products.find(p => p.id === cartItem.id);
                 if (prod) {
@@ -558,7 +556,6 @@
                 }
             }
 
-            // If Credit, update Customer Ledger Balance
             if (paymentMethod === 'Credit' && custSelectId) {
                 const cust = customers.find(c => (c.firebaseId === custSelectId || c.id === custSelectId));
                 if (cust) {
@@ -666,7 +663,7 @@
             printWindow.document.close();
         }
 
-        // --- INVENTORY SECTION (PRICE & STOCK BOTH ADJUSTMENT) ---
+        // --- INVENTORY SECTION ---
         function renderProducts() {
             if (!userPermissions.products && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -863,7 +860,7 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER ---
+        // --- CREDIT LEDGER WITH SETTLEMENT (RECEIVE PAYMENT) ---
         function renderCustomers() {
             if (!userPermissions.customers && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -874,6 +871,9 @@
                     <td class="py-3 px-4 text-gray-300">${c.address || 'N/A'}</td>
                     <td class="py-3 px-4 text-red-400 font-bold">Rs. ${(c.creditBalance || 0).toLocaleString()}</td>
                     <td class="py-3 px-4 flex items-center gap-2">
+                        <button onclick="openReceivePaymentModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-green-600/30 text-green-300 hover:bg-green-600 hover:text-white rounded text-xs font-semibold">
+                            <i class="fa-solid fa-money-bill-wave"></i> Receive Payment
+                        </button>
                         <button onclick="openEditCustomerModal('${c.firebaseId}', ${idx})" class="px-2.5 py-1 bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white rounded text-xs font-semibold">
                             <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
@@ -886,7 +886,7 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-xl font-bold text-gray-100">Customer Credit Ledger</h2>
-                            <p class="text-xs text-gray-400">Manage customer balances and directory</p>
+                            <p class="text-xs text-gray-400">Manage customer credit balances & receive payments</p>
                         </div>
                         <button onclick="openAddCustomerModal()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-semibold text-white">
                             <i class="fa-solid fa-user-plus"></i> Add Customer
@@ -908,6 +908,78 @@
                     </div>
                 </div>
             `;
+        }
+
+        function openReceivePaymentModal(firebaseId, idx) {
+            const customer = customers[idx];
+            if (!customer) return;
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-1">Receive Credit Payment</h2>
+                        <p class="text-xs text-gray-400 mb-3">Customer: <strong class="text-white">${customer.name}</strong></p>
+                        <p class="text-xs text-red-400 font-bold mb-4">Current Due (उधारो बाँकी): Rs. ${(customer.creditBalance || 0).toLocaleString()}</p>
+                        
+                        <form onsubmit="saveReceivePayment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Payment Amount Received (Rs.)</label>
+                                <input type="number" id="pay-received-amount" min="1" max="${customer.creditBalance || 0}" value="${customer.creditBalance || 0}" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-green-400">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Payment Mode (भुक्तानी माध्यम)</label>
+                                <select id="pay-received-mode" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-gray-200">
+                                    <option value="Cash" selected>Cash</option>
+                                    <option value="Fonepay">Fonepay</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-500 py-2.5 rounded-lg text-sm font-semibold text-white">Settle & Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveReceivePayment(e, firebaseId, idx) {
+            e.preventDefault();
+            const customer = customers[idx];
+            const amount = parseFloat(document.getElementById('pay-received-amount').value);
+            const mode = document.getElementById('pay-received-mode').value;
+
+            if (isNaN(amount) || amount <= 0) return;
+
+            customer.creditBalance = Math.max(0, (customer.creditBalance || 0) - amount);
+
+            if (firebaseId) {
+                await db.collection('customers').doc(firebaseId).update({ creditBalance: customer.creditBalance });
+            }
+
+            // Record as payment transaction in sales/statements
+            const paymentRecord = {
+                id: 'PAY-' + Date.now().toString().slice(-6),
+                date: new Date().toISOString(),
+                teller: currentUser.email,
+                customerName: customer.name,
+                customerAddress: customer.address || '',
+                customerPhone: customer.phone || '',
+                customerId: firebaseId,
+                items: [{ name: 'Credit Settlement Payment Received', qty: 1, price: amount }],
+                subtotal: amount,
+                discount: 0,
+                total: amount,
+                paymentMethod: mode,
+                status: 'completed',
+                isPaymentReceipt: true
+            };
+
+            const docRef = await db.collection('sales').add(paymentRecord);
+            sales.unshift({ firebaseId: docRef.id, ...paymentRecord });
+
+            closeModal();
+            renderCustomers();
+            showToast(`Payment of Rs. ${amount.toLocaleString()} received & credit settled successfully!`);
         }
 
         function openAddCustomerModal() {
@@ -1015,7 +1087,7 @@
                             </button>
                             ${!isCancelled ? `
                                 <button onclick="cancelSaleTransaction('${s.firebaseId}', ${idx})" class="px-2.5 py-1 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded text-xs flex items-center gap-1">
-                                    <i class="fa-solid fa-ban"></i> Cancel Sale
+                                    <i class="fa-solid fa-ban"></i> Cancel
                                 </button>
                             ` : ''}
                         </td>
@@ -1028,7 +1100,7 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-xl font-bold text-gray-100">Financial Statements & Bills</h2>
-                            <p class="text-xs text-gray-400">View transactions, reprint bills, or cancel mistake sales (Auto Stock Restored)</p>
+                            <p class="text-xs text-gray-400">View transactions, reprint bills, or cancel mistake sales/receipts</p>
                         </div>
                     </div>
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
@@ -1045,25 +1117,38 @@
             const sale = sales[idx];
             if (!sale) return;
 
-            if (!confirm(`के तपाईं निश्चित हुनुहुन्छ? यो बिल (${sale.id}) क्यान्सिल गर्दा सामानहरूको स्टक (Stock) स्वतः फिर्ता हुनेछ।`)) return;
+            if (!confirm(`के तपाईं निश्चित हुनुहुन्छ? यो बिल (${sale.id}) क्यान्सिल गर्न चाहनुहुन्छ?`)) return;
 
             try {
-                for (let item of sale.items) {
-                    const prod = products.find(p => p.id === item.id);
-                    if (prod) {
-                        prod.stock += item.qty;
-                        if (prod.firebaseId) {
-                            await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                if (!sale.isPaymentReceipt) {
+                    for (let item of sale.items) {
+                        const prod = products.find(p => p.id === item.id);
+                        if (prod) {
+                            prod.stock += item.qty;
+                            if (prod.firebaseId) {
+                                await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                            }
                         }
                     }
-                }
 
-                if (sale.paymentMethod === 'Credit' && sale.customerId) {
-                    const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
-                    if (cust) {
-                        cust.creditBalance = Math.max(0, (cust.creditBalance || 0) - sale.total);
-                        if (cust.firebaseId) {
-                            await db.collection('customers').doc(cust.firebaseId).update({ creditBalance: cust.creditBalance });
+                    if (sale.paymentMethod === 'Credit' && sale.customerId) {
+                        const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
+                        if (cust) {
+                            cust.creditBalance = Math.max(0, (cust.creditBalance || 0) - sale.total);
+                            if (cust.firebaseId) {
+                                await db.collection('customers').doc(cust.firebaseId).update({ creditBalance: cust.creditBalance });
+                            }
+                        }
+                    }
+                } else {
+                    // If it was a payment receipt, restore back the customer credit balance
+                    if (sale.customerId) {
+                        const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
+                        if (cust) {
+                            cust.creditBalance = (cust.creditBalance || 0) + sale.total;
+                            if (cust.firebaseId) {
+                                await db.collection('customers').doc(cust.firebaseId).update({ creditBalance: cust.creditBalance });
+                            }
                         }
                     }
                 }
@@ -1074,10 +1159,10 @@
                 sale.status = 'cancelled';
 
                 renderStatements();
-                showToast(`Sale ${sale.id} cancelled & stock restored successfully!`);
+                showToast(`Transaction ${sale.id} cancelled successfully!`);
             } catch (err) {
-                console.error("Cancel Sale Error:", err);
-                showToast("Failed to cancel sale: " + err.message, "error");
+                console.error("Cancel Error:", err);
+                showToast("Failed to cancel: " + err.message, "error");
             }
         }
 
@@ -1145,9 +1230,9 @@
                                     <th class="pb-3 px-4">Invoice #</th>
                                     <th class="pb-3 px-4">Date</th>
                                     <th class="pb-3 px-4">Client Name</th>
-                                    <th class="pb-3 px-4">Items Sold</th>
+                                    <th class="pb-3 px-4">Items/Description</th>
                                     <th class="pb-3 px-4">Mode</th>
-                                    <th class="pb-3 px-4">Total Amount</th>
+                                    <th class="pb-3 px-4">Amount</th>
                                 </tr>
                             </thead>
                             <tbody id="report-table-body"></tbody>
@@ -1190,7 +1275,7 @@
 
             document.getElementById('report-summary-cards').innerHTML = `
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-gray-400 uppercase">Filtered Net Revenue</p>
+                    <p class="text-xs text-gray-400 uppercase">Filtered Net Collections</p>
                     <h3 class="text-2xl font-bold text-green-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
                 </div>
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
@@ -1204,7 +1289,7 @@
             `;
 
             const rowsHTML = filteredSales.map(s => {
-                const itemsStr = s.items.map(i => `${i.name} (x${i.qty})`).join(', ');
+                const itemsStr = s.items.map(i => i.isPaymentReceipt ? i.name : `${i.name} (x${i.qty})`).join(', ');
                 return `
                     <tr class="border-b border-gray-700/50 text-sm">
                         <td class="py-3 px-4 font-mono text-blue-400">${s.id}</td>
@@ -1225,7 +1310,7 @@
         function exportReportExcel() {
             const filteredSales = getFilteredReportSales();
             const data = filteredSales.map(s => ({
-                Invoice: s.id, Date: new Date(s.date).toLocaleString(), ClientName: s.customerName, Phone: s.customerPhone || 'N/A', Address: s.customerAddress || 'N/A', Items: s.items.map(i => `${i.name} (x${i.qty})`).join(', '), Discount: s.discount || 0, PaymentMode: s.paymentMethod || 'Cash', TotalAmount: s.total
+                Invoice: s.id, Date: new Date(s.date).toLocaleString(), ClientName: s.customerName, Phone: s.customerPhone || 'N/A', Address: s.customerAddress || 'N/A', Details: s.items.map(i => i.name).join(', '), PaymentMode: s.paymentMethod || 'Cash', Amount: s.total
             }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             const workbook = XLSX.utils.book_new();
@@ -1243,7 +1328,7 @@
                     <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.id}</td>
                     <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${new Date(s.date).toLocaleString()}</td>
                     <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.customerName}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.items.map(i => `${i.name} (${i.qty})`).join(', ')}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${s.items.map(i => i.name).join(', ')}</td>
                     <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; text-align: right;">Rs. ${s.total.toLocaleString()}</td>
                 </tr>
             `).join('');
@@ -1259,11 +1344,11 @@
                         <h2>SB TECH</h2>
                         <p style="font-size: 12px;">Damak-5, Jhapa, Nepal | Phone: 023-575959 / 9806050500</p>
                         <p style="font-size: 12px;">VAT No: 600714930</p>
-                        <p style="font-size: 14px; margin-top: 8px;"><strong>Advanced Sales & Client Report</strong></p>
+                        <p style="font-size: 14px; margin-top: 8px;"><strong>Financial Collection & Settlement Report</strong></p>
                     </div>
                     <hr style="margin: 10px 0;">
-                    <table><thead><tr><th>Invoice</th><th>Date</th><th>Client Name</th><th>Items</th><th style="text-align: right;">Total</th></tr></thead><tbody>${rowsHTML}</tbody></table>
-                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Net Revenue: Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <table><thead><tr><th>Invoice</th><th>Date</th><th>Client Name</th><th>Details</th><th style="text-align: right;">Amount</th></tr></thead><tbody>${rowsHTML}</tbody></table>
+                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Collections: Rs. ${totalRevenue.toLocaleString()}</h3>
                     <script>window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };<\/script>
                 </body>
                 </html>
@@ -1284,7 +1369,7 @@
             showToast("Filters reset successfully!");
         }
 
-        // --- FULL ADMIN USER CONTROL PANEL WITH PERMISSIONS CONTROL ---
+        // --- FULL ADMIN USER CONTROL PANEL ---
         function renderUsersTab() {
             if (userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
