@@ -313,7 +313,7 @@
             `;
         }
 
-        // --- POS SECTION WITH MANUAL / CUSTOM REPAIR ITEM ENTRY ---
+        // --- POS SECTION ---
         function renderPOS() {
             const container = document.getElementById('tab-content');
             let itemsHTML = products.map(p => `
@@ -605,7 +605,6 @@
                 status: 'completed'
             };
 
-            // Deduct stock only for non-custom items
             for (let cartItem of currentCart) {
                 if (!cartItem.isCustom) {
                     const prod = products.find(p => p.id === cartItem.id);
@@ -1228,7 +1227,7 @@
             }
         }
 
-        // --- REPORTS SECTION WITH CLEAR BREAKDOWN FOR CASH, FONEPAY & CREDIT ---
+        // --- REPORTS SECTION (ACCURATE ACCOUNTING BREAKDOWN) ---
         function renderReports() {
             if (!userPermissions.reports && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1332,32 +1331,39 @@
         function applyReportFilters() {
             const filteredSales = getFilteredReportSales();
             
-            const cashTotal = filteredSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
-            const fonepayTotal = filteredSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
-            const creditTotal = filteredSales.filter(s => s.paymentMethod === 'Credit').reduce((acc, s) => acc + s.total, 0);
-            const totalVolume = filteredSales.reduce((acc, s) => acc + s.total, 0);
+            // 1. Total Invoice Sales Volume (कुल बिल काटिएको रकम)
+            const totalInvoiceSales = filteredSales.filter(s => !s.isPaymentReceipt).reduce((acc, s) => acc + s.total, 0);
+
+            // 2. Total Cash Received (Direct Cash Bills + Credit Cash Payments)
+            const totalCashReceived = filteredSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
+
+            // 3. Total Fonepay Received (Direct Fonepay Bills + Credit Fonepay Payments)
+            const totalFonepayReceived = filteredSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
+
+            // 4. Total Credit Sales (उधारोमा बिक्री भएको मात्र)
+            const totalCreditSales = filteredSales.filter(s => !s.isPaymentReceipt && s.paymentMethod === 'Credit').reduce((acc, s) => acc + s.total, 0);
 
             document.getElementById('report-summary-cards').innerHTML = `
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-blue-400 uppercase font-bold">Cash Received</p>
-                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${cashTotal.toLocaleString()}</h3>
+                    <p class="text-xs text-blue-400 uppercase font-bold">Total Cash Received</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${totalCashReceived.toLocaleString()}</h3>
                 </div>
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-purple-400 uppercase font-bold">Fonepay Received</p>
-                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${fonepayTotal.toLocaleString()}</h3>
+                    <p class="text-xs text-purple-400 uppercase font-bold">Total Fonepay Received</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${totalFonepayReceived.toLocaleString()}</h3>
                 </div>
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-orange-400 uppercase font-bold">Credit (उधारो बिक्री)</p>
-                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${creditTotal.toLocaleString()}</h3>
+                    <p class="text-xs text-orange-400 uppercase font-bold">Credit Sales (उधारो बिक्री)</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${totalCreditSales.toLocaleString()}</h3>
                 </div>
                 <div class="bg-gray-800 p-5 rounded-2xl border border-blue-500/50">
-                    <p class="text-xs text-green-400 uppercase font-bold">Total Sales Volume</p>
-                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${totalVolume.toLocaleString()}</h3>
+                    <p class="text-xs text-green-400 uppercase font-bold">Total Invoice Sales</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${totalInvoiceSales.toLocaleString()}</h3>
                 </div>
             `;
 
             const rowsHTML = filteredSales.map(s => {
-                const itemsStr = s.items.map(i => i.isPaymentReceipt ? i.name : `${i.name} (x${i.qty})`).join(', ');
+                const itemsStr = s.items.map(i => i.isPaymentReceipt ? `<span class="text-green-400 font-semibold">[Payment Received]</span> ${i.name}` : `${i.name} (x${i.qty})`).join(', ');
                 return `
                     <tr class="border-b border-gray-700/50 text-sm">
                         <td class="py-3 px-4 font-mono text-blue-400">${s.id}</td>
@@ -1389,7 +1395,7 @@
 
         function printReportPDF() {
             const filteredSales = getFilteredReportSales();
-            const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
+            const totalInvoiceSales = filteredSales.filter(s => !s.isPaymentReceipt).reduce((acc, s) => acc + s.total, 0);
             const printWindow = window.open('', '_blank', 'width=800,height=600');
             const rowsHTML = filteredSales.map(s => `
                 <tr>
@@ -1416,7 +1422,7 @@
                     </div>
                     <hr style="margin: 10px 0;">
                     <table><thead><tr><th>Invoice</th><th>Date</th><th>Client Name</th><th>Details</th><th style="text-align: right;">Amount</th></tr></thead><tbody>${rowsHTML}</tbody></table>
-                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Volume: Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Invoice Sales: Rs. ${totalInvoiceSales.toLocaleString()}</h3>
                     <script>window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };<\/script>
                 </body>
                 </html>
@@ -1648,7 +1654,7 @@
                 if (err.code === 'auth/requires-recent-login') {
                     showToast("Security Check: Please logout and login again before changing password.", "error");
                 } else {
-                    showToast("Password update failed: " + err.message, "error");
+                    showToast("Password update failed: " + err.message, "error", "error");
                 }
             }
         }
@@ -1680,4 +1686,3 @@
     </script>
 </body>
 </html>
-```
