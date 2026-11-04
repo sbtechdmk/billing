@@ -1,3 +1,24 @@
+तपाईंले एकदमै सहि कुरा औंल्याउनुभयो! रिपोर्टमा सबैखाले रकम मिस्सिएर आउँदा हिसाब बुझ्न गाह्रो हुन्थ्यो। यसलाई अझ व्यवस्थित बनाउँदै रिपोर्टमा **Cash**, **Fonepay**, र **Credit (उधारो)** हरूलाई स्पष्ट रूपमा छुट्टाछुट्टै देखिने बनाइएको छ। 
+
+साथै, POS मा सामानको स्टक बाहेक **कम्प्युटर मर्मत (Computer Repair Service)** वा अन्य जुनसुकै **म्यानुअल सर्भिस/सामान** नाम र मूल्य लेखेर बिल काट्न मिल्ने गरी **"Add Custom Item"** को सुविधा पनि थपिएको छ।
+
+---
+
+### 🌟 यस नयाँ अपडेटमा थपिएका मुख्य कुराहरू:
+
+1. **रिपोर्टमा छुट्टै वर्गीकरण (Report Breakdown):**
+   - अब रिपोर्टको माथि **Total Revenue**, **Cash Collections**, **Fonepay Collections**, र **Credit Sales** हरू छुट्टाछुट्टै स्पष्ट रूपमा देखिनेछन्।
+2. **POS मा Custom / Manual Item थप्ने सुविधा:**
+   - POS स्क्रिनमा सर्च बक्समुनि वा तल **"Add Custom Item / Repair Service"** अप्सन राखिएको छ।
+   - यदि कुनै सामान स्टकमा छैन वा कम्प्युटर मर्मतको बिल काट्नु पर्छ भने, त्यसको **नाम (Description)**, **दर (Price)**, र **मात्रा (Qty)** आफैं टाइप गरेर कार्ट (Cart) मा जोड्न र बिल छाप्न सकिन्छ।
+
+---
+
+### 💻 पूरा सुधारेको कोड (`index.html`):
+
+कम्प्युटरमा रहेको `index.html` को पुरानो कोड हटाएर यो **पूर्ण कोड** राख्नुहोस् र GitHub मा Commit/Push गर्नुहोस्:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -313,7 +334,7 @@
             `;
         }
 
-        // --- POS SECTION ---
+        // --- POS SECTION WITH MANUAL / CUSTOM REPAIR ITEM ENTRY ---
         function renderPOS() {
             const container = document.getElementById('tab-content');
             let itemsHTML = products.map(p => `
@@ -335,7 +356,7 @@
             let cartHTML = currentCart.map((item, idx) => `
                 <div class="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-gray-700 text-sm">
                     <div class="flex-1">
-                        <div class="font-medium text-gray-200">${item.name}</div>
+                        <div class="font-medium text-gray-200">${item.name} ${item.isCustom ? '<span class="text-xs text-yellow-400">(Service/Manual)</span>' : ''}</div>
                         <div class="text-xs text-gray-400">Rs. ${item.price} x ${item.qty} = Rs. ${item.price * item.qty}</div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -362,7 +383,9 @@
                                 <span class="text-xs font-semibold text-blue-400 flex items-center gap-2">
                                     <img src="${LOGO_SRC}" class="w-5 h-5 rounded-full object-cover" alt="Logo"> Active User: (${currentUser.email})
                                 </span>
-                                <span class="text-xs text-gray-400">Products available: ${products.length}</span>
+                                <button onclick="openCustomItemModal()" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-screwdriver-wrench"></i> + Add Custom Item / Repair
+                                </button>
                             </div>
                             <div class="relative">
                                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
@@ -443,6 +466,57 @@
             `;
         }
 
+        function openCustomItemModal() {
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-gray-900/80 fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 text-gray-100">
+                        <h2 class="font-bold text-lg mb-4">Add Custom Item / Repair Service</h2>
+                        <form onsubmit="handleCustomItemAdd(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Item Name / Service Description (विवरण)</label>
+                                <input type="text" id="custom-item-name" required placeholder="e.g. Laptop Repair / Router Setup" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Price / Rate (Rs.)</label>
+                                    <input type="number" id="custom-item-price" min="0" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-green-400">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1">Quantity</label>
+                                    <input type="number" id="custom-item-qty" min="1" value="1" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-bold text-blue-400">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-700 py-2.5 rounded-lg text-sm">Cancel</button>
+                                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg text-sm font-semibold text-white">Add to Bill</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleCustomItemAdd(e) {
+            e.preventDefault();
+            const name = document.getElementById('custom-item-name').value.trim();
+            const price = parseFloat(document.getElementById('custom-item-price').value);
+            const qty = parseInt(document.getElementById('custom-item-qty').value);
+
+            if (!name || isNaN(price) || isNaN(qty)) return;
+
+            currentCart.push({
+                id: 'CUSTOM-' + Date.now().toString().slice(-4),
+                name: name,
+                price: price,
+                qty: qty,
+                isCustom: true
+            });
+
+            closeModal();
+            renderPOS();
+            showToast("Custom item added to bill!");
+        }
+
         function updateDiscount(val) {
             currentDiscount = parseFloat(val) || 0;
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -474,18 +548,24 @@
                 if (existing.qty + 1 > product.stock) { showToast("Stock limit reached!", "error"); return; }
                 existing.qty += 1;
             } else {
-                currentCart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+                currentCart.push({ id: product.id, name: product.name, price: product.price, qty: 1, isCustom: false });
             }
             renderPOS();
         }
 
         function updateCartQty(idx, change) {
             const item = currentCart[idx];
-            const product = products.find(p => p.id === item.id);
-            const newQty = item.qty + change;
-            if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
-            if (product && newQty > product.stock) { showToast("Stock limit reached!", "error"); return; }
-            item.qty = newQty;
+            if (!item.isCustom) {
+                const product = products.find(p => p.id === item.id);
+                const newQty = item.qty + change;
+                if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
+                if (product && newQty > product.stock) { showToast("Stock limit reached!", "error"); return; }
+                item.qty = newQty;
+            } else {
+                const newQty = item.qty + change;
+                if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
+                item.qty = newQty;
+            }
             renderPOS();
         }
 
@@ -546,12 +626,15 @@
                 status: 'completed'
             };
 
+            // Deduct stock only for non-custom items
             for (let cartItem of currentCart) {
-                const prod = products.find(p => p.id === cartItem.id);
-                if (prod) {
-                    prod.stock = Math.max(0, prod.stock - cartItem.qty);
-                    if (prod.firebaseId) {
-                        await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                if (!cartItem.isCustom) {
+                    const prod = products.find(p => p.id === cartItem.id);
+                    if (prod) {
+                        prod.stock = Math.max(0, prod.stock - cartItem.qty);
+                        if (prod.firebaseId) {
+                            await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                        }
                     }
                 }
             }
@@ -860,7 +943,7 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER WITH SETTLEMENT (RECEIVE PAYMENT) ---
+        // --- CREDIT LEDGER ---
         function renderCustomers() {
             if (!userPermissions.customers && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -956,7 +1039,6 @@
                 await db.collection('customers').doc(firebaseId).update({ creditBalance: customer.creditBalance });
             }
 
-            // Record as payment transaction in sales/statements
             const paymentRecord = {
                 id: 'PAY-' + Date.now().toString().slice(-6),
                 date: new Date().toISOString(),
@@ -1122,11 +1204,13 @@
             try {
                 if (!sale.isPaymentReceipt) {
                     for (let item of sale.items) {
-                        const prod = products.find(p => p.id === item.id);
-                        if (prod) {
-                            prod.stock += item.qty;
-                            if (prod.firebaseId) {
-                                await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                        if (!item.isCustom) {
+                            const prod = products.find(p => p.id === item.id);
+                            if (prod) {
+                                prod.stock += item.qty;
+                                if (prod.firebaseId) {
+                                    await db.collection('products').doc(prod.firebaseId).update({ stock: prod.stock });
+                                }
                             }
                         }
                     }
@@ -1141,7 +1225,6 @@
                         }
                     }
                 } else {
-                    // If it was a payment receipt, restore back the customer credit balance
                     if (sale.customerId) {
                         const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
                         if (cust) {
@@ -1166,7 +1249,7 @@
             }
         }
 
-        // --- REPORTS SECTION ---
+        // --- REPORTS SECTION WITH CLEAR BREAKDOWN FOR CASH, FONEPAY & CREDIT ---
         function renderReports() {
             if (!userPermissions.reports && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1204,7 +1287,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Filter by Item (सामान)</label>
-                            <input type="text" id="rep-item-filter" placeholder="e.g. Laptop, CCTV" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
+                            <input type="text" id="rep-item-filter" placeholder="e.g. Laptop, Repair" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Filter by Client (ग्राहकको नाम)</label>
@@ -1220,7 +1303,7 @@
                         </div>
                     </div>
 
-                    <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+                    <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
 
                     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 overflow-x-auto">
                         <h3 class="font-bold text-sm text-gray-200 mb-3">Filtered Transaction Records</h3>
@@ -1230,7 +1313,7 @@
                                     <th class="pb-3 px-4">Invoice #</th>
                                     <th class="pb-3 px-4">Date</th>
                                     <th class="pb-3 px-4">Client Name</th>
-                                    <th class="pb-3 px-4">Items/Description</th>
+                                    <th class="pb-3 px-4">Items / Details</th>
                                     <th class="pb-3 px-4">Mode</th>
                                     <th class="pb-3 px-4">Amount</th>
                                 </tr>
@@ -1269,22 +1352,28 @@
 
         function applyReportFilters() {
             const filteredSales = getFilteredReportSales();
-            const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
+            
             const cashTotal = filteredSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
             const fonepayTotal = filteredSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
+            const creditTotal = filteredSales.filter(s => s.paymentMethod === 'Credit').reduce((acc, s) => acc + s.total, 0);
+            const totalVolume = filteredSales.reduce((acc, s) => acc + s.total, 0);
 
             document.getElementById('report-summary-cards').innerHTML = `
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-gray-400 uppercase">Filtered Net Collections</p>
-                    <h3 class="text-2xl font-bold text-green-400 mt-1">Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <p class="text-xs text-blue-400 uppercase font-bold">Cash Received</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${cashTotal.toLocaleString()}</h3>
                 </div>
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-gray-400 uppercase">Cash Collections</p>
-                    <h3 class="text-2xl font-bold text-blue-400 mt-1">Rs. ${cashTotal.toLocaleString()}</h3>
+                    <p class="text-xs text-purple-400 uppercase font-bold">Fonepay Received</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${fonepayTotal.toLocaleString()}</h3>
                 </div>
                 <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                    <p class="text-xs text-gray-400 uppercase">Fonepay Collections</p>
-                    <h3 class="text-2xl font-bold text-purple-400 mt-1">Rs. ${fonepayTotal.toLocaleString()}</h3>
+                    <p class="text-xs text-orange-400 uppercase font-bold">Credit (उधारो बिक्री)</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${creditTotal.toLocaleString()}</h3>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-2xl border border-blue-500/50">
+                    <p class="text-xs text-green-400 uppercase font-bold">Total Sales Volume</p>
+                    <h3 class="text-xl font-bold text-white mt-1">Rs. ${totalVolume.toLocaleString()}</h3>
                 </div>
             `;
 
@@ -1344,11 +1433,11 @@
                         <h2>SB TECH</h2>
                         <p style="font-size: 12px;">Damak-5, Jhapa, Nepal | Phone: 023-575959 / 9806050500</p>
                         <p style="font-size: 12px;">VAT No: 600714930</p>
-                        <p style="font-size: 14px; margin-top: 8px;"><strong>Financial Collection & Settlement Report</strong></p>
+                        <p style="font-size: 14px; margin-top: 8px;"><strong>Financial Sales & Collection Report</strong></p>
                     </div>
                     <hr style="margin: 10px 0;">
                     <table><thead><tr><th>Invoice</th><th>Date</th><th>Client Name</th><th>Details</th><th style="text-align: right;">Amount</th></tr></thead><tbody>${rowsHTML}</tbody></table>
-                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Collections: Rs. ${totalRevenue.toLocaleString()}</h3>
+                    <h3 style="text-align: right; margin-top: 15px; font-size: 14px;">Total Volume: Rs. ${totalRevenue.toLocaleString()}</h3>
                     <script>window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };<\/script>
                 </body>
                 </html>
@@ -1612,3 +1701,4 @@
     </script>
 </body>
 </html>
+```
