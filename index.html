@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SB TECH - Cloud Billing & Stock Management</title>
     
-    <!-- Static Compiled Tailwind CSS (CSP Safe) -->
+    <!-- Static Compiled Tailwind CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -23,18 +23,43 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f8fafc; /* Soft Dim White Background */
+            background-color: #f8fafc; 
             color: #0f172a; 
             min-height: 100vh;
             font-size: 14px;
         }
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #e2e8f0; }
         ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 4px; }
         
         button, a, select, input {
             transition: all 0.2s ease-in-out;
+        }
+
+        /* GUARANTEED VISIBLE CUSTOM BUTTON STYLES (Fixes invisible button text bug) */
+        .btn-solid-green {
+            background-color: #059669 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        .btn-solid-green:hover {
+            background-color: #047857 !important;
+        }
+        .btn-solid-purple {
+            background-color: #7c3aed !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        .btn-solid-purple:hover {
+            background-color: #6d28d9 !important;
+        }
+        .btn-solid-rose {
+            background-color: #e11d48 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        .btn-solid-rose:hover {
+            background-color: #be123c !important;
         }
     </style>
 </head>
@@ -86,7 +111,6 @@
                         <!-- Dynamically rendered -->
                     </nav>
 
-                    <!-- Right side controls: Email, Password, Logout -->
                     <div class="flex items-center gap-3">
                         <span id="user-email-display" class="text-xs text-slate-800 font-bold hidden sm:inline px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200"></span>
                         
@@ -105,22 +129,18 @@
                 <div class="max-w-7xl mx-auto flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">System Status: <span class="text-emerald-600">Online & Secure</span></span>
                     
-                    <!-- Notification Bell Icon -->
                     <div class="relative">
                         <button onclick="toggleNotificationDropdown()" class="relative px-3 py-1.5 bg-white hover:bg-purple-50 text-slate-700 hover:text-purple-700 rounded-xl transition border border-slate-300 flex items-center gap-2 shadow-sm cursor-pointer">
                             <i class="fa-solid fa-bell text-sm text-purple-700"></i>
                             <span class="text-xs font-bold">Low Stock Alerts</span>
                             <span id="low-stock-badge" class="bg-rose-600 text-white text-xs font-extrabold px-1.5 py-0.2 rounded-full hidden shadow">0</span>
                         </button>
-                        <!-- Notification Dropdown Menu -->
                         <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 z-50 text-sm text-slate-900">
                             <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100 font-bold text-rose-600">
                                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alerts</span>
                                 <button onclick="toggleNotificationDropdown()" class="text-slate-400 hover:text-slate-700 px-2 py-0.5 rounded-lg hover:bg-slate-100 transition font-bold cursor-pointer">✕</button>
                             </div>
-                            <div id="notification-list" class="max-h-64 overflow-y-auto space-y-2 pr-1">
-                                <!-- Populated dynamically -->
-                            </div>
+                            <div id="notification-list" class="max-h-64 overflow-y-auto space-y-2 pr-1"></div>
                         </div>
                     </div>
                 </div>
@@ -881,12 +901,11 @@
                             <p class="text-xs text-slate-600 font-semibold">Manage products, adjust prices/stocks, export/import Excel</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <!-- EXPLICIT DARK EMERALD GREEN BUTTON FOR EXPORT -->
-                            <button onclick="exportStockExcel()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
+                            <!-- EXPLICIT VISIBLE BUTTON CLASSES -->
+                            <button onclick="exportStockExcel()" class="btn-solid-green px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer">
                                 <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
                             </button>
-                            <!-- EXPLICIT DARK PURPLE BUTTON FOR IMPORT -->
-                            <label class="bg-purple-600 hover:bg-purple-700 px-4 py-2.5 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-purple-600/30 cursor-pointer flex items-center gap-2">
+                            <label class="btn-solid-purple px-4 py-2.5 rounded-xl text-xs cursor-pointer flex items-center gap-2 shadow-lg">
                                 <i class="fa-solid fa-file-import text-sm"></i> Import Excel
                                 <input type="file" accept=".xlsx, .xls, .csv" onchange="importStockExcel(event)" class="hidden">
                             </label>
@@ -1278,8 +1297,8 @@
                                 <i class="fa-solid fa-print"></i> Bill
                             </button>
                             ${!isCancelled ? `
-                                <button onclick="cancelSaleTransaction('${s.firebaseId}', ${idx})" class="px-2.5 py-1.5 bg-rose-100 text-rose-700 hover:bg-rose-600 hover:text-white rounded-xl text-xs font-bold transition border border-rose-300 flex items-center gap-1 cursor-pointer">
-                                    <i class="fa-solid fa-ban"></i> Cancel
+                                <button onclick="cancelSaleTransaction('${s.firebaseId}', ${idx})" class="btn-solid-rose px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer">
+                                    <i class="fa-solid fa-ban text-xs"></i> Cancel
                                 </button>
                             ` : ''}
                         </td>
@@ -1378,12 +1397,11 @@
                             <p class="text-xs text-slate-600 font-semibold">Filter by Date Range, Item, and Client with Excel & PDF Export</p>
                         </div>
                         <div class="flex items-center gap-2.5">
-                            <!-- EXPLICIT DARK EMERALD GREEN BUTTON FOR EXPORT -->
-                            <button onclick="exportReportExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
+                            <!-- EXPLICIT VISIBLE BUTTON CLASSES -->
+                            <button onclick="exportReportExcel()" class="btn-solid-green px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer">
                                 <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
                             </button>
-                            <!-- EXPLICIT DARK ROSE/RED BUTTON FOR PDF -->
-                            <button onclick="printReportPDF()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-rose-600/30 flex items-center gap-2 cursor-pointer">
+                            <button onclick="printReportPDF()" class="btn-solid-rose px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer">
                                 <i class="fa-solid fa-file-pdf text-sm"></i> Print PDF Report
                             </button>
                         </div>
