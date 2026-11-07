@@ -120,6 +120,7 @@
         let currentCart = [];
         let currentDiscount = 0;
         let activeTab = 'pos';
+        let selectedCustomerId = '';
 
         auth.onAuthStateChanged(async function(user) {
             if (user) {
@@ -351,7 +352,6 @@
 
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const grandTotal = Math.max(0, subtotal - currentDiscount);
-            const selectedCustId = document.getElementById('cart-customer-select')?.value || '';
 
             container.innerHTML = `
                 <div class="space-y-4">
@@ -384,7 +384,10 @@
                                         <label class="block text-xs text-gray-400 mb-1">Select Existing Customer</label>
                                         <select id="cart-customer-select" onchange="onSelectCustomerChange(this.value)" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-200">
                                             <option value="">-- Direct / Walk-in Customer --</option>
-                                            ${customers.map(c => `<option value="${c.firebaseId || c.id}" ${selectedCustId === (c.firebaseId || c.id) ? 'selected' : ''}>${c.name} (${c.phone || 'N/A'})</option>`).join('')}
+                                            ${customers.map(c => {
+                                                const cid = c.firebaseId || c.id;
+                                                return `<option value="${cid}" ${selectedCustomerId === cid ? 'selected' : ''}>${c.name} (${c.phone || 'N/A'})</option>`;
+                                            }).join('')}
                                         </select>
                                     </div>
                                     <div>
@@ -443,6 +446,32 @@
                     </div>
                 </div>
             `;
+
+            // Auto fill if customer was already selected
+            if (selectedCustomerId) {
+                onSelectCustomerChange(selectedCustomerId);
+            }
+        }
+
+        function onSelectCustomerChange(custId) {
+            selectedCustomerId = custId;
+            const nameField = document.getElementById('pos-customer-name');
+            const addrField = document.getElementById('pos-customer-address');
+            const phoneField = document.getElementById('pos-customer-phone');
+
+            if (!custId) {
+                if (nameField) nameField.value = '';
+                if (addrField) addrField.value = '';
+                if (phoneField) phoneField.value = '';
+                return;
+            }
+
+            const c = customers.find(cust => String(cust.firebaseId) === String(custId) || String(cust.id) === String(custId));
+            if (c) {
+                if (nameField) nameField.value = c.name || '';
+                if (addrField) addrField.value = c.address || '';
+                if (phoneField) phoneField.value = c.phone || '';
+            }
         }
 
         function openCustomItemModal() {
@@ -504,25 +533,10 @@
             if (gtDisplay) gtDisplay.innerText = `Rs. ${grandTotal.toLocaleString()}`;
         }
 
-        function onSelectCustomerChange(custId) {
-            if (!custId) {
-                document.getElementById('pos-customer-name').value = '';
-                document.getElementById('pos-customer-address').value = '';
-                document.getElementById('pos-customer-phone').value = '';
-                return;
-            }
-            const c = customers.find(cust => (cust.firebaseId === custId || cust.id === custId));
-            if (c) {
-                document.getElementById('pos-customer-name').value = c.name || '';
-                document.getElementById('pos-customer-address').value = c.address || '';
-                document.getElementById('pos-customer-phone').value = c.phone || '';
-            }
-        }
-
         function addToCart(prodId) {
-            const product = products.find(p => p.id === prodId);
+            const product = products.find(p => String(p.id) === String(prodId));
             if (!product || product.stock <= 0) { showToast("Out of stock!", "error"); return; }
-            const existing = currentCart.find(item => item.id === prodId);
+            const existing = currentCart.find(item => String(item.id) === String(prodId));
             if (existing) {
                 if (existing.qty + 1 > product.stock) { showToast("Stock limit reached!", "error"); return; }
                 existing.qty += 1;
@@ -535,7 +549,7 @@
         function updateCartQty(idx, change) {
             const item = currentCart[idx];
             if (!item.isCustom) {
-                const product = products.find(p => p.id === item.id);
+                const product = products.find(p => String(p.id) === String(item.id));
                 const newQty = item.qty + change;
                 if (newQty <= 0) { currentCart.splice(idx, 1); renderPOS(); return; }
                 if (product && newQty > product.stock) { showToast("Stock limit reached!", "error"); return; }
@@ -549,7 +563,7 @@
         }
 
         function removeFromCart(idx) { currentCart.splice(idx, 1); renderPOS(); }
-        function clearCart() { currentCart = []; currentDiscount = 0; renderPOS(); }
+        function clearCart() { currentCart = []; currentDiscount = 0; selectedCustomerId = ''; renderPOS(); }
 
         function filterPOSProducts(query) {
             const q = query.toLowerCase();
@@ -573,12 +587,17 @@
         async function processCheckout() {
             if (currentCart.length === 0) { showToast("Cart is empty!", "error"); return; }
             
-            const custSelectId = document.getElementById('cart-customer-select').value;
-            const inputName = document.getElementById('pos-customer-name').value.trim();
-            const inputAddress = document.getElementById('pos-customer-address').value.trim();
-            const inputPhone = document.getElementById('pos-customer-phone').value.trim();
+            const custSelectId = document.getElementById('cart-customer-select')?.value || selectedCustomerId;
+            const inputName = document.getElementById('pos-customer-name')?.value.trim();
+            const inputAddress = document.getElementById('pos-customer-address')?.value.trim();
+            const inputPhone = document.getElementById('pos-customer-phone')?.value.trim();
 
-            const finalCustomerName = inputName || 'Walk-in Customer';
+            const selectedCustObj = customers.find(c => String(c.firebaseId) === String(custSelectId) || String(c.id) === String(custSelectId));
+            
+            const finalCustomerName = inputName || (selectedCustObj ? selectedCustObj.name : 'Walk-in Customer');
+            const finalAddress = inputAddress || (selectedCustObj ? selectedCustObj.address : '');
+            const finalPhone = inputPhone || (selectedCustObj ? selectedCustObj.phone : '');
+
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'Cash';
             
             const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -594,8 +613,8 @@
                 date: new Date().toISOString(),
                 teller: currentUser.email,
                 customerName: finalCustomerName,
-                customerAddress: inputAddress,
-                customerPhone: inputPhone,
+                customerAddress: finalAddress,
+                customerPhone: finalPhone,
                 customerId: custSelectId || null,
                 items: [...currentCart],
                 subtotal: subtotal,
@@ -607,7 +626,7 @@
 
             for (let cartItem of currentCart) {
                 if (!cartItem.isCustom) {
-                    const prod = products.find(p => p.id === cartItem.id);
+                    const prod = products.find(p => String(p.id) === String(cartItem.id));
                     if (prod) {
                         prod.stock = Math.max(0, prod.stock - cartItem.qty);
                         if (prod.firebaseId) {
@@ -618,7 +637,7 @@
             }
 
             if (paymentMethod === 'Credit' && custSelectId) {
-                const cust = customers.find(c => (c.firebaseId === custSelectId || c.id === custSelectId));
+                const cust = customers.find(c => String(c.firebaseId) === String(custSelectId) || String(c.id) === String(custSelectId));
                 if (cust) {
                     cust.creditBalance = (cust.creditBalance || 0) + total;
                     if (cust.firebaseId) {
@@ -808,7 +827,7 @@
 
                         if (!name) continue;
 
-                        const existing = products.find(p => p.id === id || p.name.toLowerCase() === name.toLowerCase());
+                        const existing = products.find(p => String(p.id) === String(id) || p.name.toLowerCase() === name.toLowerCase());
                         if (existing) {
                             existing.stock = stock;
                             existing.price = price;
@@ -1183,7 +1202,7 @@
                 if (!sale.isPaymentReceipt) {
                     for (let item of sale.items) {
                         if (!item.isCustom) {
-                            const prod = products.find(p => p.id === item.id);
+                            const prod = products.find(p => String(p.id) === String(item.id));
                             if (prod) {
                                 prod.stock += item.qty;
                                 if (prod.firebaseId) {
@@ -1194,7 +1213,7 @@
                     }
 
                     if (sale.paymentMethod === 'Credit' && sale.customerId) {
-                        const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
+                        const cust = customers.find(c => String(c.firebaseId) === String(sale.customerId) || String(c.id) === String(sale.customerId));
                         if (cust) {
                             cust.creditBalance = Math.max(0, (cust.creditBalance || 0) - sale.total);
                             if (cust.firebaseId) {
@@ -1204,7 +1223,7 @@
                     }
                 } else {
                     if (sale.customerId) {
-                        const cust = customers.find(c => (c.firebaseId === sale.customerId || c.id === sale.customerId));
+                        const cust = customers.find(c => String(c.firebaseId) === String(sale.customerId) || String(c.id) === String(sale.customerId));
                         if (cust) {
                             cust.creditBalance = (cust.creditBalance || 0) + sale.total;
                             if (cust.firebaseId) {
@@ -1227,7 +1246,7 @@
             }
         }
 
-        // --- REPORTS SECTION (ACCURATE ACCOUNTING BREAKDOWN) ---
+        // --- REPORTS SECTION ---
         function renderReports() {
             if (!userPermissions.reports && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1331,16 +1350,9 @@
         function applyReportFilters() {
             const filteredSales = getFilteredReportSales();
             
-            // 1. Total Invoice Sales Volume (कुल बिल काटिएको रकम)
             const totalInvoiceSales = filteredSales.filter(s => !s.isPaymentReceipt).reduce((acc, s) => acc + s.total, 0);
-
-            // 2. Total Cash Received (Direct Cash Bills + Credit Cash Payments)
             const totalCashReceived = filteredSales.filter(s => (s.paymentMethod || 'Cash') === 'Cash').reduce((acc, s) => acc + s.total, 0);
-
-            // 3. Total Fonepay Received (Direct Fonepay Bills + Credit Fonepay Payments)
             const totalFonepayReceived = filteredSales.filter(s => s.paymentMethod === 'Fonepay').reduce((acc, s) => acc + s.total, 0);
-
-            // 4. Total Credit Sales (उधारोमा बिक्री भएको मात्र)
             const totalCreditSales = filteredSales.filter(s => !s.isPaymentReceipt && s.paymentMethod === 'Credit').reduce((acc, s) => acc + s.total, 0);
 
             document.getElementById('report-summary-cards').innerHTML = `
@@ -1654,7 +1666,7 @@
                 if (err.code === 'auth/requires-recent-login') {
                     showToast("Security Check: Please logout and login again before changing password.", "error");
                 } else {
-                    showToast("Password update failed: " + err.message, "error", "error");
+                    showToast("Password update failed: " + err.message, "error");
                 }
             }
         }
