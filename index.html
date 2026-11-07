@@ -33,7 +33,6 @@
         ::-webkit-scrollbar-track { background: #e2e8f0; }
         ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 4px; }
         
-        /* Smooth Hover Effect Improvements */
         button, a, select, input {
             transition: all 0.2s ease-in-out;
         }
@@ -101,19 +100,19 @@
                 </div>
             </header>
 
-            <!-- Sub-Header Bar for Notification & Quick Status (Placed safely below header) -->
+            <!-- Sub-Header Bar for Notification & Quick Status -->
             <div class="bg-slate-50 border-b border-slate-200 px-4 py-2">
                 <div class="max-w-7xl mx-auto flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">System Status: <span class="text-emerald-600">Online & Secure</span></span>
                     
-                    <!-- Notification Bell Icon (Placed safely in sub-bar so it never gets overlapped) -->
+                    <!-- Notification Bell Icon -->
                     <div class="relative">
                         <button onclick="toggleNotificationDropdown()" class="relative px-3 py-1.5 bg-white hover:bg-purple-50 text-slate-700 hover:text-purple-700 rounded-xl transition border border-slate-300 flex items-center gap-2 shadow-sm cursor-pointer">
                             <i class="fa-solid fa-bell text-sm text-purple-700"></i>
                             <span class="text-xs font-bold">Low Stock Alerts</span>
                             <span id="low-stock-badge" class="bg-rose-600 text-white text-xs font-extrabold px-1.5 py-0.2 rounded-full hidden shadow">0</span>
                         </button>
-                        <!-- Notification Dropdown Menu (Right aligned) -->
+                        <!-- Notification Dropdown Menu -->
                         <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 z-50 text-sm text-slate-900">
                             <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100 font-bold text-rose-600">
                                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alerts</span>
@@ -882,11 +881,13 @@
                             <p class="text-xs text-slate-600 font-semibold">Manage products, adjust prices/stocks, export/import Excel</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <button onclick="exportStockExcel()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
-                                <i class="fa-solid fa-file-excel"></i> Export Excel
+                            <!-- EXPLICIT DARK EMERALD GREEN BUTTON FOR EXPORT -->
+                            <button onclick="exportStockExcel()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
                             </button>
-                            <label class="bg-purple-600 hover:bg-purple-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-purple-600/30 cursor-pointer flex items-center gap-2">
-                                <i class="fa-solid fa-file-import"></i> Import Excel
+                            <!-- EXPLICIT DARK PURPLE BUTTON FOR IMPORT -->
+                            <label class="bg-purple-600 hover:bg-purple-700 px-4 py-2.5 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-purple-600/30 cursor-pointer flex items-center gap-2">
+                                <i class="fa-solid fa-file-import text-sm"></i> Import Excel
                                 <input type="file" accept=".xlsx, .xls, .csv" onchange="importStockExcel(event)" class="hidden">
                             </label>
                             <button onclick="openAddProductModal()" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-2 cursor-pointer">
@@ -1377,11 +1378,13 @@
                             <p class="text-xs text-slate-600 font-semibold">Filter by Date Range, Item, and Client with Excel & PDF Export</p>
                         </div>
                         <div class="flex items-center gap-2.5">
-                            <button onclick="exportReportExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
-                                <i class="fa-solid fa-file-excel"></i> Export Excel
+                            <!-- EXPLICIT DARK EMERALD GREEN BUTTON FOR EXPORT -->
+                            <button onclick="exportReportExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
                             </button>
-                            <button onclick="printReportPDF()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-rose-600/30 flex items-center gap-2 cursor-pointer">
-                                <i class="fa-solid fa-file-pdf"></i> Print PDF Report
+                            <!-- EXPLICIT DARK ROSE/RED BUTTON FOR PDF -->
+                            <button onclick="printReportPDF()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 rounded-xl text-xs font-extrabold text-white transition shadow-lg shadow-rose-600/30 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-file-pdf text-sm"></i> Print PDF Report
                             </button>
                         </div>
                     </div>
