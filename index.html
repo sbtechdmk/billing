@@ -23,7 +23,7 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f1f5f9; /* Distinct Visible Background */
+            background-color: #f1f5f9; 
             color: #0f172a; 
             min-height: 100vh;
             font-size: 14px;
@@ -31,10 +31,6 @@
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #cbd5e1; }
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
-        
-        button, a, select, input {
-            transition: all 0.2s ease-in-out;
-        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -88,10 +84,12 @@
                     <div class="flex items-center gap-3">
                         <span id="user-email-display" class="text-xs text-slate-800 font-bold hidden sm:inline px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200"></span>
                         
-                        <button onclick="openChangeMyPasswordModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 hover:text-purple-700 text-slate-800 text-xs font-bold rounded-xl transition border border-slate-300 flex items-center gap-1.5 shadow-sm cursor-pointer">
-                            <i class="fa-solid fa-key text-blue-600"></i> Password
+                        <!-- FIXED PASSWORD BUTTON -->
+                        <button onclick="openChangeMyPasswordModal()" style="background-color: #f8fafc; color: #1e293b; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid #cbd5e1;">
+                            <i class="fa-solid fa-key" style="color: #2563eb;"></i> Password
                         </button>
-                        <button onclick="logout()" class="px-3 py-2 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-bold rounded-xl transition border border-rose-200 flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <!-- FIXED LOGOUT BUTTON -->
+                        <button onclick="logout()" style="background-color: #fff1f2; color: #e11d48; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid #fecdd3;">
                             <i class="fa-solid fa-right-from-bracket"></i> Logout
                         </button>
                     </div>
@@ -530,7 +528,7 @@
         function openCustomItemModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Add Custom Item / Repair Service</h2>
                         <form onsubmit="handleCustomItemAdd(event)" class="space-y-4">
                             <div>
@@ -857,7 +855,8 @@
                     <td class="py-3 px-4 font-extrabold text-emerald-600">Rs. ${p.price.toLocaleString()}</td>
                     <td class="py-3 px-4 font-bold ${p.stock <= 3 ? 'text-rose-600' : 'text-purple-700'}">${p.stock} units</td>
                     <td class="py-3 px-4 flex items-center gap-2">
-                        <button onclick="openAdjustProductModal('${p.firebaseId}', ${idx})" class="px-3 py-1.5 bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition border border-amber-300 flex items-center gap-1.5 cursor-pointer">
+                        <!-- FIXED STOCK ADJUST BUTTON -->
+                        <button onclick="openAdjustProductModal('${p.firebaseId}', ${idx})" style="background-color: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #fde68a;">
                             <i class="fa-solid fa-sliders"></i> Adjust
                         </button>
                         <button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-rose-600 bg-rose-100 hover:bg-rose-600 hover:text-white p-1.5 rounded-xl transition border border-rose-300 cursor-pointer">
@@ -1057,7 +1056,8 @@
                     <td class="py-3 px-4 text-slate-700">${c.address || 'N/A'}</td>
                     <td class="py-3 px-4 text-rose-600 font-extrabold">Rs. ${(c.creditBalance || 0).toLocaleString()}</td>
                     <td class="py-3 px-4 flex items-center gap-2">
-                        <button onclick="openReceivePaymentModal('${c.firebaseId}', ${idx})" class="px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold transition border border-emerald-300 flex items-center gap-1.5 cursor-pointer">
+                        <!-- FIXED LEDGER RECEIVE BUTTON -->
+                        <button onclick="openReceivePaymentModal('${c.firebaseId}', ${idx})" style="background-color: #d1fae5; color: #065f46; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #a7f3d0;">
                             <i class="fa-solid fa-money-bill-wave"></i> Receive
                         </button>
                         <button onclick="openEditCustomerModal('${c.firebaseId}', ${idx})" class="px-3 py-1.5 bg-purple-100 text-purple-800 hover:bg-purple-600 hover:text-white rounded-xl text-xs font-bold transition border border-purple-300 flex items-center gap-1.5 cursor-pointer">
@@ -1588,7 +1588,8 @@
                         <button onclick="sendPasswordResetEmail('${u.email}')" class="px-2.5 py-1.5 bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition border border-amber-300 flex items-center gap-1 cursor-pointer">
                             <i class="fa-solid fa-envelope"></i> Reset
                         </button>
-                        <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" class="px-2.5 py-1.5 ${u.disabled ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-800 border-slate-300'} rounded-xl text-xs font-bold transition border cursor-pointer">
+                        <!-- FIXED USER STATUS TOGGLE BUTTON -->
+                        <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" style="background-color: ${u.disabled ? '#d1fae5' : '#f1f5f9'}; color: ${u.disabled ? '#065f46' : '#1e293b'}; padding: 6px 10px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid ${u.disabled ? '#a7f3d0' : '#cbd5e1'};">
                             <i class="fa-solid ${u.disabled ? 'fa-check' : 'fa-ban'}"></i> ${u.disabled ? 'Enable' : 'Disable'}
                         </button>
                         <button onclick="deleteUser('${u.firebaseId}', ${idx})" class="px-2.5 py-1.5 bg-rose-100 text-rose-700 hover:bg-rose-600 hover:text-white rounded-xl text-xs font-bold transition border border-rose-300 cursor-pointer">
@@ -1740,6 +1741,7 @@
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                        <button onclick="closeModal()" style="position: absolute; right: 20px; top: 20px; font-weight: bold; color: #64748b; background: none; border: none; font-size: 16px; cursor: pointer;">✕</button>
                         <h2 class="font-extrabold text-lg mb-1 text-slate-900">Change Account Password</h2>
                         <p class="text-xs text-slate-600 mb-4 font-semibold">Direct password update for: <strong class="text-slate-900">${currentUser.email}</strong></p>
                         <form onsubmit="handleSelfPasswordChange(event)" class="space-y-4">
