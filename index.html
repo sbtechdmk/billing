@@ -1585,7 +1585,8 @@
                         <button onclick="openEditUserModal('${u.firebaseId}', ${idx})" class="px-2.5 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition border border-blue-300 flex items-center gap-1 cursor-pointer">
                             <i class="fa-solid fa-user-gear"></i> Perms
                         </button>
-                        <button onclick="sendPasswordResetEmail('${u.email}')" class="px-2.5 py-1.5 bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition border border-amber-300 flex items-center gap-1 cursor-pointer">
+                        <!-- FIXED USER RESET BUTTON -->
+                        <button onclick="sendPasswordResetEmail('${u.email}')" style="background-color: #fef3c7; color: #92400e; padding: 6px 10px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #fde68a;">
                             <i class="fa-solid fa-envelope"></i> Reset
                         </button>
                         <!-- FIXED USER STATUS TOGGLE BUTTON -->
@@ -1740,7 +1741,7 @@
         function openChangeMyPasswordModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl relative">
                         <button onclick="closeModal()" style="position: absolute; right: 20px; top: 20px; font-weight: bold; color: #64748b; background: none; border: none; font-size: 16px; cursor: pointer;">✕</button>
                         <h2 class="font-extrabold text-lg mb-1 text-slate-900">Change Account Password</h2>
                         <p class="text-xs text-slate-600 mb-4 font-semibold">Direct password update for: <strong class="text-slate-900">${currentUser.email}</strong></p>
