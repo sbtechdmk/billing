@@ -23,44 +23,14 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f8fafc; 
+            background-color: #f1f5f9; 
             color: #0f172a; 
             min-height: 100vh;
             font-size: 14px;
         }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #e2e8f0; }
-        ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 4px; }
-        
-        button, a, select, input {
-            transition: all 0.2s ease-in-out;
-        }
-
-        /* GUARANTEED VISIBLE CUSTOM BUTTON STYLES (Fixes invisible button text bug) */
-        .btn-solid-green {
-            background-color: #059669 !important;
-            color: #ffffff !important;
-            font-weight: 700 !important;
-        }
-        .btn-solid-green:hover {
-            background-color: #047857 !important;
-        }
-        .btn-solid-purple {
-            background-color: #7c3aed !important;
-            color: #ffffff !important;
-            font-weight: 700 !important;
-        }
-        .btn-solid-purple:hover {
-            background-color: #6d28d9 !important;
-        }
-        .btn-solid-rose {
-            background-color: #e11d48 !important;
-            color: #ffffff !important;
-            font-weight: 700 !important;
-        }
-        .btn-solid-rose:hover {
-            background-color: #be123c !important;
-        }
+        ::-webkit-scrollbar-track { background: #cbd5e1; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
     </style>
 </head>
 <body class="flex flex-col">
@@ -69,7 +39,7 @@
     <div id="app-container" class="flex-1 flex flex-col">
         <!-- Auth Screen -->
         <div id="auth-screen" class="flex-1 flex items-center justify-center p-4">
-            <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-8 shadow-2xl">
+            <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-8 shadow-2xl">
                 <div class="text-center mb-6">
                     <img id="app-logo-login" src="logo.jpeg" class="w-20 h-20 mx-auto rounded-2xl mb-4 shadow-md object-cover border-2 border-purple-600" alt="SB TECH Logo" onerror="this.style.display='none'">
                     <h1 class="font-extrabold text-2xl text-slate-900 tracking-tight">SB TECH Cloud</h1>
@@ -87,7 +57,7 @@
                         </div>
                         <input type="password" id="login-password" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-purple-600 transition shadow-inner" placeholder="••••••••">
                     </div>
-                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 font-bold text-white rounded-xl shadow-lg shadow-purple-600/30 transition transform active:scale-95 text-sm cursor-pointer">Login to System</button>
+                    <button type="submit" style="background-color: #2563eb; color: #ffffff; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; border: none; cursor: pointer;">Login to System</button>
                 </form>
             </div>
         </div>
@@ -114,17 +84,19 @@
                     <div class="flex items-center gap-3">
                         <span id="user-email-display" class="text-xs text-slate-800 font-bold hidden sm:inline px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200"></span>
                         
-                        <button onclick="openChangeMyPasswordModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 hover:text-purple-700 text-slate-800 text-xs font-bold rounded-xl transition border border-slate-300 flex items-center gap-1.5 shadow-sm cursor-pointer">
-                            <i class="fa-solid fa-key text-blue-600"></i> Password
+                        <!-- FIXED PASSWORD BUTTON -->
+                        <button onclick="openChangeMyPasswordModal()" style="background-color: #f8fafc; color: #1e293b; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid #cbd5e1;">
+                            <i class="fa-solid fa-key" style="color: #2563eb;"></i> Password
                         </button>
-                        <button onclick="logout()" class="px-3 py-2 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-bold rounded-xl transition border border-rose-200 flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <!-- FIXED LOGOUT BUTTON -->
+                        <button onclick="logout()" style="background-color: #fff1f2; color: #e11d48; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid #fecdd3;">
                             <i class="fa-solid fa-right-from-bracket"></i> Logout
                         </button>
                     </div>
                 </div>
             </header>
 
-            <!-- Sub-Header Bar for Notification & Quick Status -->
+            <!-- Sub-Header Bar -->
             <div class="bg-slate-50 border-b border-slate-200 px-4 py-2">
                 <div class="max-w-7xl mx-auto flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">System Status: <span class="text-emerald-600">Online & Secure</span></span>
@@ -174,9 +146,10 @@
 
         let currentUser = null;
         let userRole = 'teller';
-        let userPermissions = { pos: true, products: false, customers: false, statements: false, reports: false, users: false };
+        let userPermissions = { pos: true, products: false, customers: false, suppliers: false, statements: false, reports: false, users: false };
         let products = [];
         let customers = [];
+        let suppliers = [];
         let sales = [];
         let systemUsers = [];
         let currentCart = [];
@@ -215,7 +188,7 @@
             try {
                 if (email === 'admin@sbtech.com.np') {
                     userRole = 'admin';
-                    userPermissions = { pos: true, products: true, customers: true, statements: true, reports: true, users: true };
+                    userPermissions = { pos: true, products: true, customers: true, suppliers: true, statements: true, reports: true, users: true };
                     return true;
                 }
 
@@ -225,7 +198,7 @@
                     if (data.disabled === true) return false;
 
                     userRole = data.role || 'teller';
-                    userPermissions = data.permissions || { pos: true, products: false, customers: false, statements: false, reports: false, users: false };
+                    userPermissions = data.permissions || { pos: true, products: false, customers: false, suppliers: false, statements: false, reports: false, users: false };
                     return true;
                 } else {
                     return false;
@@ -285,8 +258,8 @@
             const nav = document.getElementById('nav-tabs');
             let html = '';
 
-            const activeClass = "px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-purple-600/30 cursor-pointer";
-            const inactiveClass = "px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition flex items-center gap-2 cursor-pointer";
+            const activeClass = "px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-purple-600/30 cursor-pointer";
+            const inactiveClass = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer";
 
             if (userPermissions.pos) {
                 html += `<button onclick="switchTab('pos')" id="tab-btn-pos" class="${activeTab === 'pos' ? activeClass : inactiveClass}"><i class="fa-solid fa-cart-shopping"></i> POS</button>`;
@@ -296,6 +269,9 @@
             }
             if (userPermissions.customers) {
                 html += `<button onclick="switchTab('customers')" id="tab-btn-customers" class="${activeTab === 'customers' ? activeClass : inactiveClass}"><i class="fa-solid fa-users"></i> Ledger</button>`;
+            }
+            if (userPermissions.suppliers) {
+                html += `<button onclick="switchTab('suppliers')" id="tab-btn-suppliers" class="${activeTab === 'suppliers' ? activeClass : inactiveClass}"><i class="fa-solid fa-truck-field"></i> Suppliers</button>`;
             }
             if (userPermissions.statements) {
                 html += `<button onclick="switchTab('statements')" id="tab-btn-statements" class="${activeTab === 'statements' ? activeClass : inactiveClass}"><i class="fa-solid fa-file-invoice-dollar"></i> Statements</button>`;
@@ -317,6 +293,9 @@
 
                 const custSnap = await db.collection('customers').get();
                 customers = custSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
+
+                const suppSnap = await db.collection('suppliers').get();
+                suppliers = suppSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
 
                 const salesSnap = await db.collection('sales').orderBy('date', 'desc').get();
                 sales = salesSnap.docs.map(doc => Object.assign({ firebaseId: doc.id }, doc.data()));
@@ -383,6 +362,7 @@
             if (tab === 'pos') renderPOS();
             else if (tab === 'products') renderProducts();
             else if (tab === 'customers') renderCustomers();
+            else if (tab === 'suppliers') renderSuppliers();
             else if (tab === 'statements') renderStatements();
             else if (tab === 'reports') renderReports();
             else if (tab === 'users') renderUsersTab();
@@ -556,7 +536,7 @@
         function openCustomItemModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Add Custom Item / Repair Service</h2>
                         <form onsubmit="handleCustomItemAdd(event)" class="space-y-4">
                             <div>
@@ -574,8 +554,8 @@
                                 </div>
                             </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold transition cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 transition cursor-pointer">Add to Bill</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Add to Bill</button>
                             </div>
                         </form>
                     </div>
@@ -871,53 +851,86 @@
             printWindow.document.close();
         }
 
-        // --- INVENTORY SECTION ---
+        // --- INVENTORY SECTION WITH SUPPLIER FILTER ---
         function renderProducts() {
             if (!userPermissions.products && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
-            let rowsHTML = products.map((p, idx) => `
+            
+            const selectedSupplierFilter = document.getElementById('product-supplier-filter')?.value || '';
+
+            const filteredProducts = products.filter(p => {
+                if (selectedSupplierFilter && (p.supplier || 'General') !== selectedSupplierFilter) return false;
+                return true;
+            });
+
+            let rowsHTML = filteredProducts.map((p, idx) => {
+                const originalIdx = products.findIndex(item => (item.firebaseId && item.firebaseId === p.firebaseId) || item.id === p.id);
+                return `
                 <tr class="border-b border-slate-200 text-xs ${p.stock <= 3 ? 'bg-rose-50' : ''}">
                     <td class="py-3 px-4 text-slate-700 font-mono">${p.id}</td>
                     <td class="py-3 px-4 font-bold text-slate-900">${p.name} ${p.stock <= 3 ? '<span class="text-xs text-rose-600 font-bold ml-1">(Low Stock!)</span>' : ''}</td>
                     <td class="py-3 px-4 text-purple-700 font-bold">${p.category || 'General'}</td>
+                    <td class="py-3 px-4 text-blue-700 font-bold">${p.supplier || 'General Supplier'}</td>
                     <td class="py-3 px-4 font-extrabold text-emerald-600">Rs. ${p.price.toLocaleString()}</td>
                     <td class="py-3 px-4 font-bold ${p.stock <= 3 ? 'text-rose-600' : 'text-purple-700'}">${p.stock} units</td>
                     <td class="py-3 px-4 flex items-center gap-2">
-                        <button onclick="openAdjustProductModal('${p.firebaseId}', ${idx})" class="px-3 py-1.5 bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition border border-amber-300 flex items-center gap-1.5 cursor-pointer">
+                        <button onclick="openAdjustProductModal('${p.firebaseId}', ${originalIdx})" style="background-color: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #fde68a;">
                             <i class="fa-solid fa-sliders"></i> Adjust
                         </button>
-                        <button onclick="deleteProduct('${p.firebaseId}', ${idx})" class="text-rose-600 bg-rose-100 hover:bg-rose-600 hover:text-white p-1.5 rounded-xl transition border border-rose-300 cursor-pointer">
+                        <button onclick="deleteProduct('${p.firebaseId}', ${originalIdx})" class="text-rose-600 bg-rose-100 hover:bg-rose-600 hover:text-white p-1.5 rounded-xl transition border border-rose-300 cursor-pointer">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `;}).join('');
+
+            const supplierOptions = suppliers.map(s => `<option value="${s.name}" ${selectedSupplierFilter === s.name ? 'selected' : ''}>${s.name}</option>`).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h2 class="text-xl font-extrabold text-slate-900">Inventory & Stock Management</h2>
-                            <p class="text-xs text-slate-600 font-semibold">Manage products, adjust prices/stocks, export/import Excel</p>
+                            <p class="text-xs text-slate-600 font-semibold">Filter products by supplier, manage stock & export/import Excel</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <!-- EXPLICIT VISIBLE BUTTON CLASSES -->
-                            <button onclick="exportStockExcel()" class="btn-solid-green px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer">
-                                <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
+                            <button onclick="exportStockExcel()" style="background-color: #047857; color: #ffffff; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: 2px solid #065f46; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <i class="fa-solid fa-file-excel"></i> Export Excel
                             </button>
-                            <label class="btn-solid-purple px-4 py-2.5 rounded-xl text-xs cursor-pointer flex items-center gap-2 shadow-lg">
-                                <i class="fa-solid fa-file-import text-sm"></i> Import Excel
+                            <label style="background-color: #7c3aed; color: #ffffff; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: 2px solid #6d28d9; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <i class="fa-solid fa-file-import"></i> Import Excel
                                 <input type="file" accept=".xlsx, .xls, .csv" onchange="importStockExcel(event)" class="hidden">
                             </label>
-                            <button onclick="openAddProductModal()" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-2 cursor-pointer">
+                            <button onclick="openAddProductModal()" style="background-color: #2563eb; color: #ffffff; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: 2px solid #1d4ed8; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                                 <i class="fa-solid fa-plus"></i> Add Product
                             </button>
                         </div>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-3xl p-5 overflow-x-auto shadow-xl">
+
+                    <!-- Supplier Filter Bar -->
+                    <div class="bg-white border border-slate-300 rounded-2xl p-4 flex items-center gap-3 shadow-md">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-filter text-purple-700"></i> Filter by Supplier:</span>
+                        <select id="product-supplier-filter" onchange="renderProducts()" class="bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-purple-600 cursor-pointer">
+                            <option value="">-- All Suppliers --</option>
+                            ${supplierOptions}
+                        </select>
+                        ${selectedSupplierFilter ? `<button onclick="document.getElementById('product-supplier-filter').value=''; renderProducts();" class="text-xs text-rose-600 hover:underline font-bold">Clear Filter</button>` : ''}
+                    </div>
+
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 overflow-x-auto shadow-xl">
                         <table class="w-full text-left">
-                            <thead><tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider"><th class="pb-3 px-4">ID</th><th class="pb-3 px-4">Name</th><th class="pb-3 px-4">Category</th><th class="pb-3 px-4">Price</th><th class="pb-3 px-4">Current Stock</th><th class="pb-3 px-4">Actions</th></tr></thead>
-                            <tbody>${rowsHTML}</tbody>
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider">
+                                    <th class="pb-3 px-4">ID</th>
+                                    <th class="pb-3 px-4">Name</th>
+                                    <th class="pb-3 px-4">Category</th>
+                                    <th class="pb-3 px-4">Supplier</th>
+                                    <th class="pb-3 px-4">Price</th>
+                                    <th class="pb-3 px-4">Current Stock</th>
+                                    <th class="pb-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHTML.length === 0 ? '<tr><td colspan="7" class="text-center py-6 text-slate-400 text-xs font-bold">No products found for this supplier</td></tr>' : rowsHTML}</tbody>
                         </table>
                     </div>
                 </div>
@@ -925,7 +938,7 @@
         }
 
         function exportStockExcel() {
-            const data = products.map(p => ({ ID: p.id, Name: p.name, Category: p.category || 'General', Price: p.price, Stock: p.stock }));
+            const data = products.map(p => ({ ID: p.id, Name: p.name, Category: p.category || 'General', Supplier: p.supplier || 'General', Price: p.price, Stock: p.stock }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory_Stock");
@@ -951,6 +964,7 @@
                         const price = parseFloat(row.Price || row.price || 0);
                         const stock = parseInt(row.Stock || row.stock || 0);
                         const category = row.Category || row.category || 'General';
+                        const supplier = row.Supplier || row.supplier || 'General';
                         const id = String(row.ID || row.id || (100 + products.length + 1));
 
                         if (!name) continue;
@@ -959,11 +973,12 @@
                         if (existing) {
                             existing.stock = stock;
                             existing.price = price;
+                            existing.supplier = supplier;
                             if (existing.firebaseId) {
-                                await db.collection('products').doc(existing.firebaseId).update({ stock, price });
+                                await db.collection('products').doc(existing.firebaseId).update({ stock, price, supplier });
                             }
                         } else {
-                            const newProd = { id, name, price, stock, category };
+                            const newProd = { id, name, price, stock, category, supplier };
                             const docRef = await db.collection('products').add(newProd);
                             products.push({ firebaseId: docRef.id, ...newProd });
                         }
@@ -981,9 +996,10 @@
         }
 
         function openAddProductModal() {
+            const supplierOptions = suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Add New Product</h2>
                         <form onsubmit="saveNewProduct(event)" class="space-y-3.5">
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Name</label><input type="text" id="add-p-name" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
@@ -992,9 +1008,16 @@
                                 <div><label class="block text-xs font-bold text-slate-700 mb-1">Initial Stock</label><input type="number" id="add-p-qty" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-extrabold"></div>
                             </div>
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Category</label><input type="text" id="add-p-cat" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Supplier (आपूर्ति गर्ने कम्पनी)</label>
+                                <select id="add-p-supplier" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold cursor-pointer">
+                                    <option value="General">-- Select Supplier --</option>
+                                    ${supplierOptions}
+                                </select>
+                            </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 cursor-pointer">Save Product</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Save Product</button>
                             </div>
                         </form>
                     </div>
@@ -1005,9 +1028,10 @@
         function openAdjustProductModal(firebaseId, idx) {
             const product = products[idx];
             if (!product) return;
+            const supplierOptions = suppliers.map(s => `<option value="${s.name}" ${product.supplier === s.name ? 'selected' : ''}>${s.name}</option>`).join('');
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-1 text-slate-900">Adjust Price & Stock</h2>
                         <p class="text-xs text-slate-600 mb-4 font-semibold">Product: <strong class="text-slate-900">${product.name}</strong></p>
                         <form onsubmit="saveProductAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
@@ -1019,9 +1043,16 @@
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Stock Quantity</label>
                                 <input type="number" id="adjust-p-qty" value="${product.stock}" min="0" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-extrabold text-purple-700">
                             </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Supplier (आपूर्ति गर्ने कम्पनी)</label>
+                                <select id="adjust-p-supplier" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold cursor-pointer">
+                                    <option value="General" ${!product.supplier || product.supplier === 'General' ? 'selected' : ''}>General</option>
+                                    ${supplierOptions}
+                                </select>
+                            </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-amber-600 hover:bg-amber-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-amber-600/30 cursor-pointer">Save Changes</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #d97706; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -1033,18 +1064,20 @@
             e.preventDefault();
             const newPrice = parseFloat(document.getElementById('adjust-p-price').value);
             const newQty = parseInt(document.getElementById('adjust-p-qty').value);
+            const newSupplier = document.getElementById('adjust-p-supplier').value;
 
             if (isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) return;
 
             if (firebaseId) {
-                await db.collection('products').doc(firebaseId).update({ price: newPrice, stock: newQty });
+                await db.collection('products').doc(firebaseId).update({ price: newPrice, stock: newQty, supplier: newSupplier });
             }
             products[idx].price = newPrice;
             products[idx].stock = newQty;
+            products[idx].supplier = newSupplier;
             closeModal();
             renderProducts();
             updateLowStockNotificationBadge();
-            showToast("Price & Stock updated successfully!");
+            showToast("Price, Stock & Supplier updated successfully!");
         }
 
         async function saveNewProduct(e) {
@@ -1054,14 +1087,15 @@
                 name: document.getElementById('add-p-name').value,
                 price: parseFloat(document.getElementById('add-p-price').value),
                 stock: parseInt(document.getElementById('add-p-qty').value),
-                category: document.getElementById('add-p-cat').value || 'General'
+                category: document.getElementById('add-p-cat').value || 'General',
+                supplier: document.getElementById('add-p-supplier').value || 'General'
             };
             const docRef = await db.collection('products').add(newProd);
             products.push({ firebaseId: docRef.id, ...newProd });
             closeModal();
             renderProducts();
             updateLowStockNotificationBadge();
-            showToast("Product added!");
+            showToast("Product added with supplier!");
         }
 
         async function deleteProduct(firebaseId, idx) {
@@ -1072,7 +1106,7 @@
             showToast("Product deleted", "error");
         }
 
-        // --- CREDIT LEDGER ---
+        // --- CUSTOMER CREDIT LEDGER ---
         function renderCustomers() {
             if (!userPermissions.customers && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1083,7 +1117,7 @@
                     <td class="py-3 px-4 text-slate-700">${c.address || 'N/A'}</td>
                     <td class="py-3 px-4 text-rose-600 font-extrabold">Rs. ${(c.creditBalance || 0).toLocaleString()}</td>
                     <td class="py-3 px-4 flex items-center gap-2">
-                        <button onclick="openReceivePaymentModal('${c.firebaseId}', ${idx})" class="px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold transition border border-emerald-300 flex items-center gap-1.5 cursor-pointer">
+                        <button onclick="openReceivePaymentModal('${c.firebaseId}', ${idx})" style="background-color: #d1fae5; color: #065f46; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #a7f3d0;">
                             <i class="fa-solid fa-money-bill-wave"></i> Receive
                         </button>
                         <button onclick="openEditCustomerModal('${c.firebaseId}', ${idx})" class="px-3 py-1.5 bg-purple-100 text-purple-800 hover:bg-purple-600 hover:text-white rounded-xl text-xs font-bold transition border border-purple-300 flex items-center gap-1.5 cursor-pointer">
@@ -1104,7 +1138,7 @@
                             <i class="fa-solid fa-user-plus"></i> Add Customer
                         </button>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-3xl p-5 overflow-x-auto shadow-xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 overflow-x-auto shadow-xl">
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider">
@@ -1127,7 +1161,7 @@
             if (!customer) return;
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-1 text-slate-900">Receive Credit Payment</h2>
                         <p class="text-xs text-slate-600 mb-2 font-semibold">Customer: <strong class="text-slate-900">${customer.name}</strong></p>
                         <p class="text-xs text-rose-600 font-bold mb-4 bg-rose-50 p-2.5 rounded-xl border border-rose-200">Current Due (उधारो बाँकी): Rs. ${(customer.creditBalance || 0).toLocaleString()}</p>
@@ -1145,8 +1179,8 @@
                                 </select>
                             </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-600/30 cursor-pointer">Settle & Update</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #059669; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Settle & Update</button>
                             </div>
                         </form>
                     </div>
@@ -1196,7 +1230,7 @@
         function openAddCustomerModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Add New Customer</h2>
                         <form onsubmit="saveNewCustomer(event)" class="space-y-3.5">
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Customer Name</label><input type="text" id="add-c-name" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
@@ -1204,8 +1238,8 @@
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Address</label><input type="text" id="add-c-address" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Opening Credit Balance (Rs.)</label><input type="number" id="add-c-balance" value="0" min="0" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-extrabold"></div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 cursor-pointer">Save Customer</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Save Customer</button>
                             </div>
                         </form>
                     </div>
@@ -1234,7 +1268,7 @@
             if (!customer) return;
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Edit Customer Details</h2>
                         <form onsubmit="saveUpdatedCustomer(event, '${firebaseId}', ${idx})" class="space-y-3.5">
                             <div>
@@ -1250,8 +1284,8 @@
                                 <input type="text" id="edit-c-address" value="${customer.address || ''}" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold">
                             </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 cursor-pointer">Update Details</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Update Details</button>
                             </div>
                         </form>
                     </div>
@@ -1276,7 +1310,181 @@
             showToast("Customer details updated!");
         }
 
-        // --- STATEMENTS SECTION WITH CANCELLATION ---
+        // --- SUPPLIERS LEDGER SECTION ---
+        function renderSuppliers() {
+            if (!userPermissions.suppliers && userRole !== 'admin') { switchTab('pos'); return; }
+            const container = document.getElementById('tab-content');
+            let supplierRows = suppliers.map((s, idx) => `
+                <tr class="border-b border-slate-200 text-xs">
+                    <td class="py-3 px-4 font-bold text-slate-900">${s.name}</td>
+                    <td class="py-3 px-4 text-slate-700 font-mono">${s.phone || 'N/A'}</td>
+                    <td class="py-3 px-4 text-slate-700">${s.address || 'N/A'}</td>
+                    <td class="py-3 px-4 text-rose-600 font-extrabold">Rs. ${(s.dueBalance || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4 flex items-center gap-2">
+                        <button onclick="openPaySupplierModal('${s.firebaseId}', ${idx})" style="background-color: #d1fae5; color: #065f46; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #a7f3d0;">
+                            <i class="fa-solid fa-money-check-dollar"></i> Pay Due
+                        </button>
+                        <button onclick="openEditSupplierModal('${s.firebaseId}', ${idx})" class="px-3 py-1.5 bg-purple-100 text-purple-800 hover:bg-purple-600 hover:text-white rounded-xl text-xs font-bold transition border border-purple-300 flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-900">Supplier Ledger & Payment Dues</h2>
+                            <p class="text-xs text-slate-600 font-semibold">Manage supplier accounts, track payable dues & make payments</p>
+                        </div>
+                        <button onclick="openAddSupplierModal()" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-truck-medical"></i> Add Supplier
+                        </button>
+                    </div>
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 overflow-x-auto shadow-xl">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider">
+                                    <th class="pb-3 px-4">Supplier Name</th>
+                                    <th class="pb-3 px-4">Phone Number</th>
+                                    <th class="pb-3 px-4">Address</th>
+                                    <th class="pb-3 px-4">Payable Due (तिर्न बाँकी)</th>
+                                    <th class="pb-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${supplierRows.length === 0 ? '<tr><td colspan="5" class="text-center py-6 text-slate-400 text-xs font-bold">No suppliers added yet. Click Add Supplier.</td></tr>' : supplierRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddSupplierModal() {
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                        <h2 class="font-extrabold text-lg mb-4 text-slate-900">Add New Supplier</h2>
+                        <form onsubmit="saveNewSupplier(event)" class="space-y-3.5">
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Supplier Name</label><input type="text" id="add-sup-name" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold" placeholder="e.g. Smarten Nepal / TechDistro"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Phone Number</label><input type="text" id="add-sup-phone" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Address</label><input type="text" id="add-sup-address" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold" placeholder="Kathmandu"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Opening Payable Due (Rs.)</label><input type="number" id="add-sup-due" value="0" min="0" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-extrabold"></div>
+                            <div class="flex gap-3 pt-2">
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Save Supplier</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveNewSupplier(e) {
+            e.preventDefault();
+            const newSup = {
+                name: document.getElementById('add-sup-name').value.trim(),
+                phone: document.getElementById('add-sup-phone').value || '',
+                address: document.getElementById('add-sup-address').value || '',
+                dueBalance: parseFloat(document.getElementById('add-sup-due').value) || 0
+            };
+            const docRef = await db.collection('suppliers').add(newSup);
+            suppliers.push({ firebaseId: docRef.id, ...newSup });
+            closeModal();
+            renderSuppliers();
+            showToast("Supplier added successfully!");
+        }
+
+        function openPaySupplierModal(firebaseId, idx) {
+            const supplier = suppliers[idx];
+            if (!supplier) return;
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                        <h2 class="font-extrabold text-lg mb-1 text-slate-900">Make Payment to Supplier</h2>
+                        <p class="text-xs text-slate-600 mb-2 font-semibold">Supplier: <strong class="text-slate-900">${supplier.name}</strong></p>
+                        <p class="text-xs text-rose-600 font-bold mb-4 bg-rose-50 p-2.5 rounded-xl border border-rose-200">Current Payable Due (तिर्न बाँकी): Rs. ${(supplier.dueBalance || 0).toLocaleString()}</p>
+                        
+                        <form onsubmit="saveSupplierPayment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Payment Amount (Rs.)</label>
+                                <input type="number" id="sup-pay-amount" min="1" max="${supplier.dueBalance || 0}" value="${supplier.dueBalance || 0}" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-extrabold text-emerald-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Payment Mode (भुक्तानी माध्यम)</label>
+                                <select id="sup-pay-mode" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold">
+                                    <option value="Cash" selected>Cash</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-3 pt-2">
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #059669; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Pay & Settle Due</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveSupplierPayment(e, firebaseId, idx) {
+            e.preventDefault();
+            const supplier = suppliers[idx];
+            const amount = parseFloat(document.getElementById('sup-pay-amount').value);
+
+            if (isNaN(amount) || amount <= 0) return;
+
+            supplier.dueBalance = Math.max(0, (supplier.dueBalance || 0) - amount);
+
+            if (firebaseId) {
+                await db.collection('suppliers').doc(firebaseId).update({ dueBalance: supplier.dueBalance });
+            }
+
+            closeModal();
+            renderSuppliers();
+            showToast(`Payment of Rs. ${amount.toLocaleString()} paid to ${supplier.name} successfully!`);
+        }
+
+        function openEditSupplierModal(firebaseId, idx) {
+            const supplier = suppliers[idx];
+            if (!supplier) return;
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                        <h2 class="font-extrabold text-lg mb-4 text-slate-900">Edit Supplier Details</h2>
+                        <form onsubmit="saveUpdatedSupplier(event, '${firebaseId}', ${idx})" class="space-y-3.5">
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Supplier Name</label><input type="text" id="edit-sup-name" value="${supplier.name}" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Phone Number</label><input type="text" id="edit-sup-phone" value="${supplier.phone || ''}" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 mb-1">Address</label><input type="text" id="edit-sup-address" value="${supplier.address || ''}" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
+                            <div class="flex gap-3 pt-2">
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Update Details</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveUpdatedSupplier(e, firebaseId, idx) {
+            e.preventDefault();
+            const updatedData = {
+                name: document.getElementById('edit-sup-name').value.trim(),
+                phone: document.getElementById('edit-sup-phone').value || '',
+                address: document.getElementById('edit-sup-address').value || ''
+            };
+
+            if (firebaseId) {
+                await db.collection('suppliers').doc(firebaseId).update(updatedData);
+            }
+            Object.assign(suppliers[idx], updatedData);
+            closeModal();
+            renderSuppliers();
+            showToast("Supplier details updated!");
+        }
+
+        // --- STATEMENTS SECTION ---
         function renderStatements() {
             if (!userPermissions.statements && userRole !== 'admin') { switchTab('pos'); return; }
             const container = document.getElementById('tab-content');
@@ -1297,8 +1505,8 @@
                                 <i class="fa-solid fa-print"></i> Bill
                             </button>
                             ${!isCancelled ? `
-                                <button onclick="cancelSaleTransaction('${s.firebaseId}', ${idx})" class="btn-solid-rose px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow cursor-pointer">
-                                    <i class="fa-solid fa-ban text-xs"></i> Cancel
+                                <button onclick="cancelSaleTransaction('${s.firebaseId}', ${idx})" style="background-color: #dc2626; color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #b91c1c;">
+                                    <i class="fa-solid fa-ban"></i> Cancel
                                 </button>
                             ` : ''}
                         </td>
@@ -1314,7 +1522,7 @@
                             <p class="text-xs text-slate-600 font-semibold">View transactions, reprint bills, or cancel mistake sales/receipts</p>
                         </div>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-3xl p-5 overflow-x-auto shadow-xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 overflow-x-auto shadow-xl">
                         <table class="w-full text-left">
                             <thead><tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider"><th class="pb-3 px-4">Invoice #</th><th class="pb-3 px-4">Date/Time</th><th class="pb-3 px-4">Customer</th><th class="pb-3 px-4">Teller</th><th class="pb-3 px-4">Mode</th><th class="pb-3 px-4">Total</th><th class="pb-3 px-4">Action</th></tr></thead>
                             <tbody>${sales.length === 0 ? '<tr><td colspan="7" class="text-center py-6 text-slate-400 text-xs font-bold">No statements recorded yet</td></tr>' : statementRows}</tbody>
@@ -1397,17 +1605,16 @@
                             <p class="text-xs text-slate-600 font-semibold">Filter by Date Range, Item, and Client with Excel & PDF Export</p>
                         </div>
                         <div class="flex items-center gap-2.5">
-                            <!-- EXPLICIT VISIBLE BUTTON CLASSES -->
-                            <button onclick="exportReportExcel()" class="btn-solid-green px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer">
-                                <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
+                            <button onclick="exportReportExcel()" style="background-color: #047857; color: #ffffff; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: 2px solid #065f46; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <i class="fa-solid fa-file-excel"></i> Export Excel
                             </button>
-                            <button onclick="printReportPDF()" class="btn-solid-rose px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg cursor-pointer">
-                                <i class="fa-solid fa-file-pdf text-sm"></i> Print PDF Report
+                            <button onclick="printReportPDF()" style="background-color: #e11d48; color: #ffffff; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border: 2px solid #be123c; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <i class="fa-solid fa-file-pdf"></i> Print PDF Report
                             </button>
                         </div>
                     </div>
 
-                    <div class="bg-white border border-slate-200 rounded-3xl p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shadow-xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shadow-xl">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1">From Date (देखि)</label>
                             <input type="date" id="rep-from-date" value="${oneYearAgoStr}" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl p-2.5 text-xs font-bold">
@@ -1436,7 +1643,7 @@
 
                     <div id="report-summary-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
 
-                    <div class="bg-white border border-slate-200 rounded-3xl p-5 overflow-x-auto shadow-xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 overflow-x-auto shadow-xl">
                         <h3 class="font-extrabold text-sm text-slate-900 mb-3">Filtered Transaction Records</h3>
                         <table class="w-full text-left">
                             <thead>
@@ -1490,15 +1697,15 @@
             const totalCreditSales = filteredSales.filter(s => !s.isPaymentReceipt && s.paymentMethod === 'Credit').reduce((acc, s) => acc + s.total, 0);
 
             document.getElementById('report-summary-cards').innerHTML = `
-                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-lg">
+                <div class="bg-white p-5 rounded-3xl border border-slate-300 shadow-lg">
                     <p class="text-xs text-blue-600 uppercase font-extrabold tracking-wider">Total Cash Received</p>
                     <h3 class="text-xl font-extrabold text-slate-900 mt-1.5">Rs. ${totalCashReceived.toLocaleString()}</h3>
                 </div>
-                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-lg">
+                <div class="bg-white p-5 rounded-3xl border border-slate-300 shadow-lg">
                     <p class="text-xs text-purple-700 uppercase font-extrabold tracking-wider">Total Fonepay Received</p>
                     <h3 class="text-xl font-extrabold text-slate-900 mt-1.5">Rs. ${totalFonepayReceived.toLocaleString()}</h3>
                 </div>
-                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-lg">
+                <div class="bg-white p-5 rounded-3xl border border-slate-300 shadow-lg">
                     <p class="text-xs text-amber-600 uppercase font-extrabold tracking-wider">Credit Sales (उधारो बिक्री)</p>
                     <h3 class="text-xl font-extrabold text-slate-900 mt-1.5">Rs. ${totalCreditSales.toLocaleString()}</h3>
                 </div>
@@ -1604,6 +1811,7 @@
                         POS: ${u.permissions?.pos ? '✅' : '❌'} | 
                         Stock: ${u.permissions?.products ? '✅' : '❌'} | 
                         Ledger: ${u.permissions?.customers ? '✅' : '❌'} | 
+                        Suppliers: ${u.permissions?.suppliers ? '✅' : '❌'} | 
                         Statements: ${u.permissions?.statements ? '✅' : '❌'} | 
                         Reports: ${u.permissions?.reports ? '✅' : '❌'}
                     </td>
@@ -1611,10 +1819,10 @@
                         <button onclick="openEditUserModal('${u.firebaseId}', ${idx})" class="px-2.5 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition border border-blue-300 flex items-center gap-1 cursor-pointer">
                             <i class="fa-solid fa-user-gear"></i> Perms
                         </button>
-                        <button onclick="sendPasswordResetEmail('${u.email}')" class="px-2.5 py-1.5 bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition border border-amber-300 flex items-center gap-1 cursor-pointer">
+                        <button onclick="sendPasswordResetEmail('${u.email}')" style="background-color: #fef3c7; color: #92400e; padding: 6px 10px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #fde68a;">
                             <i class="fa-solid fa-envelope"></i> Reset
                         </button>
-                        <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" class="px-2.5 py-1.5 ${u.disabled ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-800 border-slate-300'} rounded-xl text-xs font-bold transition border cursor-pointer">
+                        <button onclick="toggleUserStatus('${u.firebaseId}', ${idx})" style="background-color: ${u.disabled ? '#d1fae5' : '#f1f5f9'}; color: ${u.disabled ? '#065f46' : '#1e293b'}; padding: 6px 10px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid ${u.disabled ? '#a7f3d0' : '#cbd5e1'};">
                             <i class="fa-solid ${u.disabled ? 'fa-check' : 'fa-ban'}"></i> ${u.disabled ? 'Enable' : 'Disable'}
                         </button>
                         <button onclick="deleteUser('${u.firebaseId}', ${idx})" class="px-2.5 py-1.5 bg-rose-100 text-rose-700 hover:bg-rose-600 hover:text-white rounded-xl text-xs font-bold transition border border-rose-300 cursor-pointer">
@@ -1635,7 +1843,7 @@
                             <i class="fa-solid fa-user-plus"></i> Create New User
                         </button>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-3xl p-5 overflow-x-auto shadow-xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl p-5 overflow-x-auto shadow-xl">
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider">
@@ -1655,7 +1863,7 @@
         function openAddUserModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Create New User Profile</h2>
                         <form onsubmit="saveNewUser(event)" class="space-y-3.5">
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label><input type="email" id="new-user-email" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
@@ -1665,12 +1873,13 @@
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="perm-pos" checked class="rounded text-purple-600 focus:ring-purple-500"> POS & Billing</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="perm-products" class="rounded text-purple-600 focus:ring-purple-500"> Stock & Inventory</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="perm-customers" class="rounded text-purple-600 focus:ring-purple-500"> Credit Ledger</label>
+                                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="perm-suppliers" class="rounded text-purple-600 focus:ring-purple-500"> Suppliers Ledger</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="perm-statements" class="rounded text-purple-600 focus:ring-purple-500"> Statements</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="perm-reports" class="rounded text-purple-600 focus:ring-purple-500"> Reports</label>
                             </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 cursor-pointer">Create & Authorize</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Create & Authorize</button>
                             </div>
                         </form>
                     </div>
@@ -1686,6 +1895,7 @@
                 pos: document.getElementById('perm-pos').checked,
                 products: document.getElementById('perm-products').checked,
                 customers: document.getElementById('perm-customers').checked,
+                suppliers: document.getElementById('perm-suppliers').checked,
                 statements: document.getElementById('perm-statements').checked,
                 reports: document.getElementById('perm-reports').checked
             };
@@ -1711,7 +1921,7 @@
             const p = u.permissions || {};
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
                         <h2 class="font-extrabold text-lg mb-1 text-slate-900">Edit Access Permissions</h2>
                         <p class="text-xs text-slate-600 mb-4 font-semibold">User: <strong class="text-slate-900">${u.email}</strong></p>
                         <form onsubmit="saveUserPermissions(event, '${firebaseId}', ${idx})" class="space-y-3">
@@ -1720,12 +1930,13 @@
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="edit-perm-pos" ${p.pos ? 'checked' : ''} class="rounded text-purple-600"> POS & Billing</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="edit-perm-products" ${p.products ? 'checked' : ''} class="rounded text-purple-600"> Stock & Inventory</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="edit-perm-customers" ${p.customers ? 'checked' : ''} class="rounded text-purple-600"> Credit Ledger</label>
+                                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="edit-perm-suppliers" ${p.suppliers ? 'checked' : ''} class="rounded text-purple-600"> Suppliers Ledger</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="edit-perm-statements" ${p.statements ? 'checked' : ''} class="rounded text-purple-600"> Statements</label>
                                 <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="edit-perm-reports" ${p.reports ? 'checked' : ''} class="rounded text-purple-600"> Reports</label>
                             </div>
                             <div class="flex gap-3 pt-3">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 cursor-pointer">Save Changes</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -1739,6 +1950,7 @@
                 pos: document.getElementById('edit-perm-pos').checked,
                 products: document.getElementById('edit-perm-products').checked,
                 customers: document.getElementById('edit-perm-customers').checked,
+                suppliers: document.getElementById('edit-perm-suppliers').checked,
                 statements: document.getElementById('edit-perm-statements').checked,
                 reports: document.getElementById('edit-perm-reports').checked
             };
@@ -1765,7 +1977,8 @@
         function openChangeMyPasswordModal() {
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl relative">
+                        <button onclick="closeModal()" style="position: absolute; right: 20px; top: 20px; font-weight: bold; color: #64748b; background: none; border: none; font-size: 16px; cursor: pointer;">✕</button>
                         <h2 class="font-extrabold text-lg mb-1 text-slate-900">Change Account Password</h2>
                         <p class="text-xs text-slate-600 mb-4 font-semibold">Direct password update for: <strong class="text-slate-900">${currentUser.email}</strong></p>
                         <form onsubmit="handleSelfPasswordChange(event)" class="space-y-4">
@@ -1774,8 +1987,8 @@
                                 <input type="password" id="my-new-password" required minlength="6" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold" placeholder="Minimum 6 characters">
                             </div>
                             <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl text-xs font-bold text-white shadow-lg shadow-purple-600/30 cursor-pointer">Update Password Now</button>
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Update Password Now</button>
                             </div>
                         </form>
                     </div>
