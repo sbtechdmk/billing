@@ -465,9 +465,9 @@
                             </div>
                         </div>
 
-                        <!-- Cart Items Scrollable List (तपाईंको छुटेको भाग) -->
-                        <div class="space-y-2 max-h-[110px] overflow-y-auto pr-1 border-t border-slate-100 pt-2">
-                            ${currentCart.length === 0 ? '<div class="text-center py-3 text-slate-400 text-xs font-bold">Cart is empty. Click products to add.</div>' : cartHTML}
+                        <!-- Cart Items Scrollable List -->
+                        <div class="space-y-1.5 max-h-[80px] overflow-y-auto pr-1 border-t border-slate-100 pt-2">
+                            ${currentCart.length === 0 ? '<div class="text-center py-2 text-slate-400 text-xs font-bold">Cart is empty.</div>' : cartHTML}
                         </div>
 
                         <!-- Bill Totals & Checkout -->
@@ -498,8 +498,8 @@
                                     <input type="radio" name="payment-method" value="Credit" class="text-purple-600 focus:ring-purple-500"> Credit
                                 </label>
                             </div>
-                            <button onclick="processCheckout()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-extrabold text-white rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition transform active:scale-95 text-xs mt-1 cursor-pointer">
-                                <i class="fa-solid fa-print"></i> Complete Sale & Print
+                            <button onclick="processCheckout()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 font-extrabold text-black rounded-2xl shadow-md flex items-center justify-center gap-2 transition transform active:scale-95 text-xs mt-1 cursor-pointer border border-emerald-600">
+                                <i class="fa-solid fa-print text-black"></i> Complete Sale & Print
                             </button>
                         </div>
                     </div>
