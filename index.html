@@ -1498,9 +1498,15 @@
             showToast(`Payment of Rs. ${amount.toLocaleString()} paid to ${supplier.name} successfully!`);
         }
 
+        let currentSupBillItems = [];
+
         function openAddSupplierBillModal(firebaseId, idx) {
             const supplier = suppliers[idx];
             if (!supplier) return;
+
+            currentSupBillItems = [
+                { productId: '', name: '', category: 'General', qty: 1, costRate: '', mrpRate: '' }
+            ];
 
             const productOptions = products.map(p => {
                 const pid = p.firebaseId || p.id || '';
@@ -1509,95 +1515,164 @@
 
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div class="bg-white border border-slate-300 rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl">
-                        <div class="flex justify-between items-center mb-1">
-                            <h2 class="font-extrabold text-lg text-slate-900">Add Supplier Purchase Bill</h2>
-                            <button onclick="closeModal()" style="font-weight: bold; color: #64748b; background: none; border: none; font-size: 16px; cursor: pointer;">✕</button>
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-4xl w-full p-6 text-slate-900 shadow-2xl max-h-[90vh] flex flex-col">
+                        <div class="flex justify-between items-center mb-1 pb-2 border-b border-slate-200">
+                            <div>
+                                <h2 class="font-extrabold text-lg text-slate-900">Add Supplier Purchase Bill (Multi-Item)</h2>
+                                <p class="text-xs text-slate-600 font-semibold">Supplier: <strong class="text-slate-900">${supplier.name}</strong> | Current Due: <strong class="text-rose-600">Rs. ${(supplier.dueBalance || 0).toLocaleString()}</strong></p>
+                            </div>
+                            <button onclick="closeModal()" style="font-weight: bold; color: #64748b; background: none; border: none; font-size: 18px; cursor: pointer;">✕</button>
                         </div>
-                        <p class="text-xs text-slate-600 mb-4 font-semibold">Supplier: <strong class="text-slate-900">${supplier.name}</strong> | Current Due: <strong class="text-rose-600">Rs. ${(supplier.dueBalance || 0).toLocaleString()}</strong></p>
 
-                        <form onsubmit="saveSupplierBill(event, '${firebaseId}', ${idx})" class="space-y-3">
-                            <div class="grid grid-cols-2 gap-3">
+                        <form onsubmit="saveSupplierBill(event, '${firebaseId}', ${idx})" class="flex-1 overflow-y-auto space-y-4 pr-1 pt-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Bill / Invoice No.</label>
-                                    <input type="text" id="sup-bill-no" required placeholder="e.g. INV-104" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
+                                    <input type="text" id="sup-bill-no" required placeholder="e.g. INV-104" class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Bill Date</label>
-                                    <input type="date" id="sup-bill-date" value="${new Date().toISOString().split('T')[0]}" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
+                                    <input type="date" id="sup-bill-date" value="${new Date().toISOString().split('T')[0]}" required class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Select Existing Item (वा तल नयाँ नाम लेख्नुहोस्)</label>
-                                <select id="sup-bill-product-select" onchange="onSelectBillProduct(this)" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
-                                    <option value="">-- New Product / Type Name Below --</option>
-                                    ${productOptions}
-                                </select>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Bill Items (नयाँ सामान सिधै नाम लेखेर थप्न वा Stock बाट छान्न मिल्छ)</span>
+                                <button type="button" onclick="addSupBillRow()" style="background-color: #2563eb; color: #ffffff; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; border: none;">
+                                    <i class="fa-solid fa-plus"></i> Add Another Item
+                                </button>
                             </div>
 
-                            <div class="grid grid-cols-3 gap-2.5">
-                                <div class="col-span-2">
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Item Name (सामानको नाम)</label>
-                                    <input type="text" id="sup-bill-item-name" required placeholder="e.g. Smarten 1250 Inverter" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
-                                </div>
+                            <div id="sup-bill-items-container" class="space-y-2.5"></div>
+
+                            <div class="bg-slate-100 rounded-2xl p-3.5 flex justify-between items-center text-xs font-extrabold border border-slate-300">
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
-                                    <input type="text" id="sup-bill-item-cat" value="General" placeholder="e.g. Inverter" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold">
+                                    <span class="text-slate-700 block">Total Payable Bill Amount (सबै सामानको जम्मा लागत):</span>
+                                    <span class="text-[11px] text-slate-500 font-semibold">यसले सप्लायरको Due बढाउँछ र Stock मा सबै सामान अपडेट गर्छ।</span>
                                 </div>
+                                <span id="sup-bill-total-display" class="text-rose-600 text-base">Rs. 0</span>
                             </div>
 
-                            <div class="grid grid-cols-3 gap-2.5">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Qty (परिमाण)</label>
-                                    <input type="number" id="sup-bill-qty" min="1" value="1" required oninput="calculateSupBillTotal()" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2 text-xs font-extrabold">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-amber-800 mb-1">Cost Rate (परेको दर)</label>
-                                    <input type="number" id="sup-bill-cost" min="0" step="any" required oninput="calculateSupBillTotal()" placeholder="0" style="background-color: #fffbeb; border: 1px solid #f59e0b;" class="w-full text-slate-900 rounded-xl px-3 py-2 text-xs font-extrabold">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-emerald-800 mb-1">Selling / MRP (बेच्ने दर)</label>
-                                    <input type="number" id="sup-bill-mrp" min="0" step="any" required placeholder="0" style="background-color: #ecfdf5; border: 1px solid #10b981;" class="w-full text-slate-900 rounded-xl px-3 py-2 text-xs font-extrabold">
-                                </div>
-                            </div>
-
-                            <div class="bg-slate-100 rounded-xl p-3 flex justify-between items-center text-xs font-extrabold border border-slate-200">
-                                <span class="text-slate-700">Payable Bill Amount (Cost × Qty):</span>
-                                <span id="sup-bill-total-display" class="text-rose-600 text-sm">Rs. 0</span>
-                            </div>
-
-                            <div class="flex gap-3 pt-2">
-                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 11px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
-                                <button type="submit" style="background-color: #059669; color: #ffffff; flex: 1; padding: 11px; border-radius: 12px; font-weight: 700; font-size: 12px; border: none; cursor: pointer;">Save Bill & Update Stock</button>
+                            <div class="flex gap-3 pt-1">
+                                <button type="button" onclick="closeModal()" style="background-color: #e2e8f0; color: #1e293b; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="background-color: #059669; color: #ffffff; flex: 2; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; border: none; cursor: pointer;">Save Full Bill & Update Stock</button>
                             </div>
                         </form>
                     </div>
                 </div>
             `;
+
+            window._cachedProductOptionsHTML = productOptions;
+            renderSupBillRows();
         }
 
-        function onSelectBillProduct(selectEl) {
-            const selectedOption = selectEl.options[selectEl.selectedIndex];
-            if (!selectEl.value) return;
-            const itemName = selectedOption.getAttribute('data-name') || selectedOption.text.split(' (Stock:')[0];
-            const mrp = selectedOption.getAttribute('data-price') || '';
-            const cost = selectedOption.getAttribute('data-cost') || '';
-            const cat = selectedOption.getAttribute('data-cat') || 'General';
+        function renderSupBillRows() {
+            const container = document.getElementById('sup-bill-items-container');
+            if (!container) return;
 
-            document.getElementById('sup-bill-item-name').value = itemName;
-            document.getElementById('sup-bill-item-cat').value = cat;
-            if (mrp) document.getElementById('sup-bill-mrp').value = mrp;
-            if (cost) document.getElementById('sup-bill-cost').value = cost;
+            container.innerHTML = currentSupBillItems.map((item, rIdx) => {
+                const rowSub = (parseFloat(item.qty) || 0) * (parseFloat(item.costRate) || 0);
+                return `
+                    <div class="bg-slate-50 border border-slate-300 rounded-2xl p-3 space-y-2 relative">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[11px] font-extrabold text-purple-700">Item #${rIdx + 1}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-extrabold text-slate-800">Subtotal: <span id="sup-row-sub-${rIdx}" class="text-rose-600">Rs. ${rowSub.toLocaleString()}</span></span>
+                                ${currentSupBillItems.length > 1 ? `<button type="button" onclick="removeSupBillRow(${rIdx})" class="text-rose-600 hover:text-rose-800 text-xs font-bold cursor-pointer"><i class="fa-solid fa-trash"></i> Remove</button>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Existing Stock Item (ऐच्छिक)</label>
+                                <select onchange="onSelectBillRowProduct(${rIdx}, this)" class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold">
+                                    <option value="">-- New Item (नयाँ सामान) --</option>
+                                    ${window._cachedProductOptionsHTML || ''}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-700 mb-0.5">Item Name (सामानको नाम) *</label>
+                                <input type="text" id="sup-row-name-${rIdx}" value="${item.name}" oninput="updateSupBillRowField(${rIdx}, 'name', this.value)" required placeholder="Type item name..." class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-700 mb-0.5">Category</label>
+                                <input type="text" id="sup-row-cat-${rIdx}" value="${item.category}" oninput="updateSupBillRowField(${rIdx}, 'category', this.value)" placeholder="General" class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-700 mb-0.5">Qty (परिमाण) *</label>
+                                <input type="number" id="sup-row-qty-${rIdx}" value="${item.qty}" min="1" required oninput="updateSupBillRowField(${rIdx}, 'qty', this.value)" class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-extrabold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-amber-800 mb-0.5">Cost Rate (परेको दर) *</label>
+                                <input type="number" id="sup-row-cost-${rIdx}" value="${item.costRate}" min="0" step="any" required oninput="updateSupBillRowField(${rIdx}, 'costRate', this.value)" placeholder="0" style="background-color: #fffbeb; border: 1px solid #f59e0b;" class="w-full text-slate-900 rounded-xl px-2.5 py-1.5 text-xs font-extrabold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-emerald-800 mb-0.5">Selling / MRP (बेच्ने दर) *</label>
+                                <input type="number" id="sup-row-mrp-${rIdx}" value="${item.mrpRate}" min="0" step="any" required oninput="updateSupBillRowField(${rIdx}, 'mrpRate', this.value)" placeholder="0" style="background-color: #ecfdf5; border: 1px solid #10b981;" class="w-full text-slate-900 rounded-xl px-2.5 py-1.5 text-xs font-extrabold">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Restore selected dropdown values if set
+            currentSupBillItems.forEach((item, rIdx) => {
+                if (item.productId) {
+                    const sel = container.querySelectorAll('select')[rIdx];
+                    if (sel) sel.value = item.productId;
+                }
+            });
+
+            calculateSupBillTotal();
+        }
+
+        function addSupBillRow() {
+            currentSupBillItems.push({ productId: '', name: '', category: 'General', qty: 1, costRate: '', mrpRate: '' });
+            renderSupBillRows();
+        }
+
+        function removeSupBillRow(rIdx) {
+            if (currentSupBillItems.length <= 1) return;
+            currentSupBillItems.splice(rIdx, 1);
+            renderSupBillRows();
+        }
+
+        function onSelectBillRowProduct(rIdx, selectEl) {
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            const item = currentSupBillItems[rIdx];
+            if (!item) return;
+
+            item.productId = selectEl.value;
+            if (selectEl.value) {
+                item.name = selectedOption.getAttribute('data-name') || selectedOption.text.split(' (Stock:')[0];
+                item.mrpRate = selectedOption.getAttribute('data-price') || '';
+                item.costRate = selectedOption.getAttribute('data-cost') || '';
+                item.category = selectedOption.getAttribute('data-cat') || 'General';
+            }
+            renderSupBillRows();
+        }
+
+        function updateSupBillRowField(rIdx, field, val) {
+            if (!currentSupBillItems[rIdx]) return;
+            currentSupBillItems[rIdx][field] = val;
+            const qty = parseFloat(currentSupBillItems[rIdx].qty) || 0;
+            const cost = parseFloat(currentSupBillItems[rIdx].costRate) || 0;
+            const subEl = document.getElementById(`sup-row-sub-${rIdx}`);
+            if (subEl) subEl.textContent = `Rs. ${(qty * cost).toLocaleString()}`;
             calculateSupBillTotal();
         }
 
         function calculateSupBillTotal() {
-            const qty = parseFloat(document.getElementById('sup-bill-qty')?.value) || 0;
-            const cost = parseFloat(document.getElementById('sup-bill-cost')?.value) || 0;
-            const total = qty * cost;
+            const grandTotal = currentSupBillItems.reduce((sum, item) => {
+                const qty = parseFloat(item.qty) || 0;
+                const cost = parseFloat(item.costRate) || 0;
+                return sum + (qty * cost);
+            }, 0);
             const el = document.getElementById('sup-bill-total-display');
-            if (el) el.textContent = `Rs. ${total.toLocaleString()}`;
+            if (el) el.textContent = `Rs. ${grandTotal.toLocaleString()}`;
         }
 
         async function saveSupplierBill(e, supplierFirebaseId, idx) {
@@ -1607,79 +1682,89 @@
 
             const billNo = document.getElementById('sup-bill-no').value.trim();
             const billDate = document.getElementById('sup-bill-date').value;
-            const selectedProdId = document.getElementById('sup-bill-product-select').value;
-            const itemName = document.getElementById('sup-bill-item-name').value.trim();
-            const itemCat = document.getElementById('sup-bill-item-cat').value.trim() || 'General';
-            const qty = parseInt(document.getElementById('sup-bill-qty').value) || 0;
-            const costRate = parseFloat(document.getElementById('sup-bill-cost').value) || 0;
-            const mrpRate = parseFloat(document.getElementById('sup-bill-mrp').value) || 0;
-            const billTotal = qty * costRate;
+
+            const validItems = currentSupBillItems.filter(it => it.name && it.name.trim() !== '');
+            if (validItems.length === 0) {
+                showToast("Please add at least one item!", "error");
+                return;
+            }
+
+            let grandBillTotal = 0;
 
             try {
-                // 1. Update Supplier Due Balance using Cost Rate
-                const newDue = (parseFloat(supplier.dueBalance) || 0) + billTotal;
+                for (const item of validItems) {
+                    const itemName = item.name.trim();
+                    const itemCat = (item.category || 'General').trim();
+                    const qty = parseInt(item.qty) || 0;
+                    const costRate = parseFloat(item.costRate) || 0;
+                    const mrpRate = parseFloat(item.mrpRate) || 0;
+                    const lineTotal = qty * costRate;
+                    grandBillTotal += lineTotal;
+
+                    // Save each item record under the same Bill No.
+                    await db.collection('supplier_bills').add({
+                        type: 'purchase',
+                        supplierId: supplierFirebaseId,
+                        supplierName: supplier.name,
+                        billNo,
+                        billDate,
+                        itemName,
+                        qty,
+                        costRate,
+                        mrpRate,
+                        billTotal: lineTotal,
+                        createdAt: new Date().toISOString()
+                    });
+
+                    // Update Existing Product Stock & Selling MRP, or Auto-Create New Product in Stock
+                    const existingIndex = products.findIndex(p =>
+                        (item.productId && (String(p.firebaseId) === String(item.productId) || String(p.id) === String(item.productId))) ||
+                        p.name.trim().toLowerCase() === itemName.toLowerCase()
+                    );
+
+                    if (existingIndex !== -1) {
+                        const prod = products[existingIndex];
+                        const updatedStock = (parseInt(prod.stock) || 0) + qty;
+                        const updatePayload = {
+                            stock: updatedStock,
+                            price: mrpRate,
+                            costPrice: costRate,
+                            supplier: supplier.name
+                        };
+                        if (prod.firebaseId) {
+                            await db.collection('products').doc(prod.firebaseId).update(updatePayload);
+                        }
+                        prod.stock = updatedStock;
+                        prod.price = mrpRate;
+                        prod.costPrice = costRate;
+                        prod.supplier = supplier.name;
+                    } else {
+                        const newProd = {
+                            id: (100 + products.length + 1).toString(),
+                            name: itemName,
+                            category: itemCat,
+                            supplier: supplier.name,
+                            stock: qty,
+                            price: mrpRate,
+                            costPrice: costRate
+                        };
+                        const pRef = await db.collection('products').add(newProd);
+                        products.push({ firebaseId: pRef.id, ...newProd });
+                    }
+                }
+
+                // Update Supplier Due Balance by total of all items in the bill
+                const newDue = (parseFloat(supplier.dueBalance) || 0) + grandBillTotal;
                 await db.collection('suppliers').doc(supplierFirebaseId).update({
                     dueBalance: newDue,
                     lastBillDate: billDate
                 });
                 supplier.dueBalance = newDue;
 
-                // 2. Save Purchase Bill Record
-                await db.collection('supplier_bills').add({
-                    type: 'purchase',
-                    supplierId: supplierFirebaseId,
-                    supplierName: supplier.name,
-                    billNo,
-                    billDate,
-                    itemName,
-                    qty,
-                    costRate,
-                    mrpRate,
-                    billTotal,
-                    createdAt: new Date().toISOString()
-                });
-
-                // 3. Update Existing Product Stock & Selling MRP (or Add if new)
-                const existingIndex = products.findIndex(p =>
-                    (selectedProdId && (String(p.firebaseId) === String(selectedProdId) || String(p.id) === String(selectedProdId))) ||
-                    p.name.trim().toLowerCase() === itemName.toLowerCase()
-                );
-
-                if (existingIndex !== -1) {
-                    const prod = products[existingIndex];
-                    const updatedStock = (parseInt(prod.stock) || 0) + qty;
-                    const prodDocId = prod.firebaseId;
-                    const updatePayload = {
-                        stock: updatedStock,
-                        price: mrpRate,
-                        costPrice: costRate,
-                        supplier: supplier.name
-                    };
-                    if (prodDocId) {
-                        await db.collection('products').doc(prodDocId).update(updatePayload);
-                    }
-                    prod.stock = updatedStock;
-                    prod.price = mrpRate;
-                    prod.costPrice = costRate;
-                    prod.supplier = supplier.name;
-                } else {
-                    const newProd = {
-                        id: (100 + products.length + 1).toString(),
-                        name: itemName,
-                        category: itemCat,
-                        supplier: supplier.name,
-                        stock: qty,
-                        price: mrpRate,
-                        costPrice: costRate
-                    };
-                    const pRef = await db.collection('products').add(newProd);
-                    products.push({ firebaseId: pRef.id, ...newProd });
-                }
-
                 closeModal();
                 renderSuppliers();
                 updateLowStockNotificationBadge();
-                showToast(`Bill ${billNo} saved! Due +Rs. ${billTotal.toLocaleString()} & Stock updated.`);
+                showToast(`Bill ${billNo} (${validItems.length} items) saved! Due +Rs. ${grandBillTotal.toLocaleString()} & Stock updated.`);
             } catch (err) {
                 console.error("Error saving supplier bill:", err);
                 showToast("Failed to save bill: " + err.message, "error");
