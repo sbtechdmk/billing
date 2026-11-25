@@ -84,6 +84,9 @@
                     <div class="flex items-center gap-3">
                         <span id="user-email-display" class="text-xs text-slate-800 font-bold hidden sm:inline px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200"></span>
                         
+                        <button onclick="openDriveBackupModal()" style="background-color: #ecfdf5; color: #065f46; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid #10b981;">
+                            <i class="fa-brands fa-google-drive" style="color: #059669;"></i> Drive Backup
+                        </button>
                         <button onclick="openChangeMyPasswordModal()" style="background-color: #f8fafc; color: #1e293b; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid #cbd5e1;">
                             <i class="fa-solid fa-key" style="color: #2563eb;"></i> Password
                         </button>
@@ -758,6 +761,7 @@
             sales.unshift({ firebaseId: docRef.id, ...sale });
 
             showToast("Sale completed & recorded!");
+            triggerAutoDriveBackup("Sale_" + sale.id);
             printSaleInvoice(sale);
             clearCart();
         }
@@ -1765,6 +1769,7 @@
                 renderSuppliers();
                 updateLowStockNotificationBadge();
                 showToast(`Bill ${billNo} (${validItems.length} items) saved! Due +Rs. ${grandBillTotal.toLocaleString()} & Stock updated.`);
+                triggerAutoDriveBackup("SupplierBill_" + billNo);
             } catch (err) {
                 console.error("Error saving supplier bill:", err);
                 showToast("Failed to save bill: " + err.message, "error");
@@ -2428,6 +2433,131 @@
             systemUsers.splice(idx, 1);
             renderUsersTab();
             showToast("User deleted permanently!", "error");
+        }
+
+        // --- GOOGLE DRIVE AUTO-BACKUP (OPTION 2: GOOGLE APPS SCRIPT WEBHOOK) ---
+        function getDriveWebhookUrl() {
+            return localStorage.getItem('sbtech_drive_webhook_url') || '';
+        }
+
+        function isAutoBackupEnabled() {
+            return localStorage.getItem('sbtech_drive_auto_sync') === 'true';
+        }
+
+        function openDriveBackupModal() {
+            const savedUrl = getDriveWebhookUrl();
+            const autoEnabled = isAutoBackupEnabled();
+            const lastBackup = localStorage.getItem('sbtech_last_drive_backup') || 'Never';
+
+            document.getElementById('modal-container').innerHTML = `
+                <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white border border-slate-300 rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="font-extrabold text-lg text-slate-900 flex items-center gap-2">
+                                <i class="fa-brands fa-google-drive text-emerald-600 text-xl"></i> Google Drive Auto-Backup
+                            </h2>
+                            <button onclick="closeModal()" style="font-weight: bold; color: #64748b; background: none; border: none; font-size: 16px; cursor: pointer;">✕</button>
+                        </div>
+                        <p class="text-xs text-slate-600 mb-4 font-semibold">Google Apps Script Web App URL हालेर आफ्नो Google Drive भित्र सिधै Auto-Backup सेभ गर्नुहोस्।</p>
+
+                        <form onsubmit="saveDriveBackupSettings(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Google Apps Script Web App URL</label>
+                                <input type="url" id="drive-webhook-url" value="${savedUrl}" placeholder="https://script.google.com/macros/s/..../exec" class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold">
+                            </div>
+
+                            <label class="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 p-3 rounded-xl cursor-pointer">
+                                <input type="checkbox" id="drive-auto-sync-toggle" ${autoEnabled ? 'checked' : ''} class="w-4 h-4 text-emerald-600">
+                                <div>
+                                    <span class="block text-xs font-extrabold text-emerald-900">Enable Auto-Backup on Every Sale / Bill</span>
+                                    <span class="block text-[11px] text-emerald-700 font-semibold">प्रत्येक बिक्री वा सप्लायर बिल सेभ हुँदा आफैँ Google Drive मा फाइल पठाउँछ।</span>
+                                </div>
+                            </label>
+
+                            <div class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+                                <span class="font-bold text-slate-700">Last Backup to Drive:</span>
+                                <span id="last-backup-time-label" class="font-mono font-extrabold text-purple-700">${lastBackup}</span>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2.5 pt-2">
+                                <button type="button" onclick="syncNowToGoogleDrive()" style="background-color: #059669; color: #ffffff; flex: 1; padding: 11px; border-radius: 12px; font-weight: 800; font-size: 12px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Backup Now
+                                </button>
+                                <button type="submit" style="background-color: #2563eb; color: #ffffff; flex: 1; padding: 11px; border-radius: 12px; font-weight: 800; font-size: 12px; border: none; cursor: pointer;">
+                                    Save Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveDriveBackupSettings(e) {
+            e.preventDefault();
+            const url = document.getElementById('drive-webhook-url').value.trim();
+            const autoSync = document.getElementById('drive-auto-sync-toggle').checked;
+            localStorage.setItem('sbtech_drive_webhook_url', url);
+            localStorage.setItem('sbtech_drive_auto_sync', autoSync ? 'true' : 'false');
+            showToast("Google Drive Backup settings saved!");
+            closeModal();
+        }
+
+        async function buildFullBackupPayload(triggerReason = 'Manual') {
+            let supBills = [];
+            try {
+                const sbSnap = await db.collection('supplier_bills').get();
+                supBills = sbSnap.docs.map(d => Object.assign({ firebaseId: d.id }, d.data()));
+            } catch (e) {}
+
+            return {
+                app: "SB TECH Cloud Billing",
+                backupDate: new Date().toISOString(),
+                trigger: triggerReason,
+                products,
+                customers,
+                suppliers,
+                supplierBills: supBills,
+                sales
+            };
+        }
+
+        async function syncNowToGoogleDrive(silent = false, triggerReason = 'Manual_Backup') {
+            const urlInput = document.getElementById('drive-webhook-url');
+            const webhookUrl = urlInput ? urlInput.value.trim() : getDriveWebhookUrl();
+
+            if (!webhookUrl) {
+                if (!silent) showToast("Please enter Google Apps Script Web App URL first!", "error");
+                return;
+            }
+
+            if (!silent) showToast("Uploading full backup to Google Drive...");
+
+            try {
+                const payload = await buildFullBackupPayload(triggerReason);
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+
+                const nowStr = new Date().toLocaleString();
+                localStorage.setItem('sbtech_last_drive_backup', nowStr);
+                const labelEl = document.getElementById('last-backup-time-label');
+                if (labelEl) labelEl.innerText = nowStr;
+
+                if (!silent) showToast("Full backup sent to Google Drive successfully!");
+            } catch (err) {
+                console.error("Drive backup error:", err);
+                if (!silent) showToast("Backup failed: " + err.message, "error");
+            }
+        }
+
+        function triggerAutoDriveBackup(reason) {
+            if (isAutoBackupEnabled() && getDriveWebhookUrl()) {
+                syncNowToGoogleDrive(true, reason);
+            }
         }
 
         function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
