@@ -409,7 +409,8 @@
                             <h3 class="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition">${p.name}</h3>
                             <span class="text-xs font-extrabold ${p.stock > 3 ? 'bg-slate-100 text-slate-800 border border-slate-300' : 'bg-rose-100 text-rose-700 border border-rose-300'} px-2.5 py-0.5 rounded-full whitespace-nowrap">Stock: ${p.stock}</span>
                         </div>
-                        <p class="text-xs text-purple-700 font-bold mb-3">${p.category || 'General'}</p>
+                        <p class="text-xs text-purple-700 font-bold mb-1">${p.category || 'General'}</p>
+                        ${p.serialNo ? `<p class="text-[11px] font-mono text-indigo-700 font-semibold mb-2">S/N: ${p.serialNo}</p>` : '<div class="mb-2"></div>'}
                     </div>
                     <div class="flex justify-between items-center pt-3 border-t border-slate-100">
                         <span class="text-base font-extrabold text-emerald-600">Rs. ${p.price.toLocaleString()}</span>
@@ -472,7 +473,7 @@
                         </div>
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" onkeyup="filterPOSProducts(this.value)" placeholder="Search products by name..." class="w-full bg-white text-slate-900 border border-slate-300 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold focus:outline-none focus:border-purple-600 transition shadow-inner">
+                            <input type="text" onkeyup="filterPOSProducts(this.value)" placeholder="Search products by name or S/N..." class="w-full bg-white text-slate-900 border border-slate-300 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold focus:outline-none focus:border-purple-600 transition shadow-inner">
                         </div>
                         <div id="pos-product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">${itemsHTML}</div>
                     </div>
@@ -678,7 +679,7 @@
                     price: product.price, 
                     costPrice: parseFloat(product.costPrice) || 0,
                     qty: 1, 
-                    serialNo: '',
+                    serialNo: product.serialNo || '',
                     warranty: '',
                     isCustom: false 
                 });
@@ -733,7 +734,7 @@
 
         function filterPOSProducts(query) {
             const q = query.toLowerCase();
-            const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q) || String(p.serialNo || '').toLowerCase().includes(q));
             document.getElementById('pos-product-grid').innerHTML = filtered.map(p => {
                 const uniqueKey = p.firebaseId || p.id;
                 return `
@@ -743,6 +744,7 @@
                             <h3 class="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition">${p.name}</h3>
                             <span class="text-xs font-extrabold ${p.stock > 3 ? 'bg-slate-100 text-slate-800 border border-slate-300' : 'bg-rose-100 text-rose-700 border border-rose-300'} px-2.5 py-0.5 rounded-full whitespace-nowrap">Stock: ${p.stock}</span>
                         </div>
+                        ${p.serialNo ? `<p class="text-[11px] font-mono text-indigo-700 font-semibold mb-2">S/N: ${p.serialNo}</p>` : ''}
                     </div>
                     <div class="flex justify-between items-center pt-3 border-t border-slate-100">
                         <span class="text-base font-extrabold text-emerald-600">Rs. ${p.price}</span>
@@ -933,7 +935,8 @@
                     const matchName = (p.name || '').toLowerCase().includes(q);
                     const matchCat = (p.category || '').toLowerCase().includes(q);
                     const matchId = String(p.id || '').toLowerCase().includes(q);
-                    if (!matchName && !matchCat && !matchId) return false;
+                    const matchSN = String(p.serialNo || '').toLowerCase().includes(q);
+                    if (!matchName && !matchCat && !matchId && !matchSN) return false;
                 }
                 return true;
             });
@@ -947,7 +950,10 @@
                 return `
                 <tr class="border-b border-slate-200 text-xs ${p.stock <= 3 ? 'bg-rose-50' : ''}">
                     <td class="py-3 px-4 text-slate-700 font-mono">${p.id}</td>
-                    <td class="py-3 px-4 font-bold text-slate-900">${p.name} ${p.stock <= 3 ? '<span class="text-xs text-rose-600 font-bold ml-1">(Low Stock!)</span>' : ''}</td>
+                    <td class="py-3 px-4 font-bold text-slate-900">
+                        ${p.name} ${p.stock <= 3 ? '<span class="text-xs text-rose-600 font-bold ml-1">(Low Stock!)</span>' : ''}
+                        ${p.serialNo ? `<div class="text-[11px] font-mono text-indigo-700 font-semibold mt-0.5">S/N: ${p.serialNo}</div>` : ''}
+                    </td>
                     <td class="py-3 px-4 text-purple-700 font-bold">${p.category || 'General'}</td>
                     <td class="py-3 px-4 text-blue-700 font-bold">${p.supplier || 'General Supplier'}</td>
                     <td class="py-3 px-4 font-extrabold text-emerald-600">Rs. ${p.price.toLocaleString()}</td>
@@ -1011,7 +1017,7 @@
                     <div class="bg-white border border-slate-300 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 shadow-md">
                         <div class="relative flex-1">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" id="stock-search-input" value="${stockSearchQuery}" oninput="handleStockSearchAndFilter()" placeholder="Search product by Name, ID or Category (सामान खोज्नुहोस्)..." class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-xs font-bold focus:outline-none focus:border-purple-600 transition">
+                            <input type="text" id="stock-search-input" value="${stockSearchQuery}" oninput="handleStockSearchAndFilter()" placeholder="Search product by Name, ID, S/N or Category (सामान वा SN खोज्नुहोस्)..." class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-xs font-bold focus:outline-none focus:border-purple-600 transition">
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-bold text-slate-700 whitespace-nowrap flex items-center gap-1"><i class="fa-solid fa-truck-field text-purple-700"></i> Supplier:</span>
@@ -1028,7 +1034,7 @@
                             <thead>
                                 <tr class="border-b border-slate-200 text-xs text-slate-700 font-extrabold uppercase tracking-wider">
                                     <th class="pb-3 px-4">ID</th>
-                                    <th class="pb-3 px-4">Name</th>
+                                    <th class="pb-3 px-4">Name & S/N</th>
                                     <th class="pb-3 px-4">Category</th>
                                     <th class="pb-3 px-4">Supplier</th>
                                     <th class="pb-3 px-4">Price</th>
@@ -1044,7 +1050,7 @@
         }
 
         function exportStockExcel() {
-            const data = products.map(p => ({ ID: p.id, Name: p.name, Category: p.category || 'General', Supplier: p.supplier || 'General', Price: p.price, Stock: p.stock }));
+            const data = products.map(p => ({ ID: p.id, Name: p.name, SerialNo: p.serialNo || '', Category: p.category || 'General', Supplier: p.supplier || 'General', CostPrice: p.costPrice || 0, Price: p.price, Stock: p.stock }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory_Stock");
@@ -1071,6 +1077,8 @@
                         const stock = parseInt(row.Stock || row.stock || 0);
                         const category = row.Category || row.category || 'General';
                         const supplier = row.Supplier || row.supplier || 'General';
+                        const serialNo = String(row.SerialNo || row.serialNo || row.SN || row.sn || '').trim();
+                        const costPrice = parseFloat(row.CostPrice || row.costPrice || 0);
                         const id = String(row.ID || row.id || (100 + products.length + 1));
 
                         if (!name) continue;
@@ -1080,11 +1088,13 @@
                             existing.stock = stock;
                             existing.price = price;
                             existing.supplier = supplier;
+                            if (serialNo) existing.serialNo = serialNo;
+                            if (costPrice) existing.costPrice = costPrice;
                             if (existing.firebaseId) {
-                                await db.collection('products').doc(existing.firebaseId).update({ stock, price, supplier });
+                                await db.collection('products').doc(existing.firebaseId).update({ stock, price, supplier, serialNo: existing.serialNo || '', costPrice: existing.costPrice || 0 });
                             }
                         } else {
-                            const newProd = { id, name, price, stock, category, supplier };
+                            const newProd = { id, name, serialNo, costPrice, price, stock, category, supplier };
                             const docRef = await db.collection('products').add(newProd);
                             products.push({ firebaseId: docRef.id, ...newProd });
                         }
@@ -1109,6 +1119,10 @@
                         <h2 class="font-extrabold text-lg mb-4 text-slate-900">Add New Product</h2>
                         <form onsubmit="saveNewProduct(event)" class="space-y-3.5">
                             <div><label class="block text-xs font-bold text-slate-700 mb-1">Name</label><input type="text" id="add-p-name" required class="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold"></div>
+                            <div>
+                                <label class="block text-xs font-bold text-indigo-800 mb-1">Serial Number / S/N (सिरियल नम्बर - ऐच्छिक)</label>
+                                <input type="text" id="add-p-sn" placeholder="e.g. SN12345 (धेरै भए कमा ',' दिएर लेख्नुहोस्)" class="w-full bg-indigo-50/60 text-slate-900 border border-indigo-300 rounded-xl px-3.5 py-2 text-xs font-mono font-bold">
+                            </div>
                             <div class="grid grid-cols-3 gap-2">
                                 <div><label class="block text-xs font-bold text-amber-800 mb-1">Cost (Rs.)</label><input type="number" id="add-p-cost" value="0" min="0" class="w-full bg-amber-50 text-slate-900 border border-amber-300 rounded-xl px-3 py-2 text-sm font-extrabold"></div>
                                 <div><label class="block text-xs font-bold text-emerald-800 mb-1">Selling (Rs.)</label><input type="number" id="add-p-price" required class="w-full bg-emerald-50 text-slate-900 border border-emerald-300 rounded-xl px-3 py-2 text-sm font-extrabold"></div>
@@ -1139,9 +1153,13 @@
             document.getElementById('modal-container').innerHTML = `
                 <div class="bg-slate-900/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div class="bg-white border border-slate-300 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
-                        <h2 class="font-extrabold text-lg mb-1 text-slate-900">Adjust Price & Stock</h2>
+                        <h2 class="font-extrabold text-lg mb-1 text-slate-900">Adjust Price, Stock & S/N</h2>
                         <p class="text-xs text-slate-600 mb-4 font-semibold">Product: <strong class="text-slate-900">${product.name}</strong></p>
-                        <form onsubmit="saveProductAdjustment(event, '${firebaseId}', ${idx})" class="space-y-4">
+                        <form onsubmit="saveProductAdjustment(event, '${firebaseId}', ${idx})" class="space-y-3.5">
+                            <div>
+                                <label class="block text-xs font-bold text-indigo-800 mb-1">Serial Number / S/N (सिरियल नम्बर)</label>
+                                <input type="text" id="adjust-p-sn" value="${product.serialNo || ''}" placeholder="e.g. SN12345 (धेरै भए कमा ',' दिएर लेख्नुहोस्)" class="w-full bg-indigo-50/60 text-slate-900 border border-indigo-300 rounded-xl px-3.5 py-2 text-xs font-mono font-bold">
+                            </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-xs font-bold text-amber-800 mb-1">Cost Price (Rs.)</label>
@@ -1175,6 +1193,7 @@
 
         async function saveProductAdjustment(e, firebaseId, idx) {
             e.preventDefault();
+            const newSN = (document.getElementById('adjust-p-sn')?.value || '').trim();
             const newCost = parseFloat(document.getElementById('adjust-p-cost')?.value) || 0;
             const newPrice = parseFloat(document.getElementById('adjust-p-price').value);
             const newQty = parseInt(document.getElementById('adjust-p-qty').value);
@@ -1183,8 +1202,9 @@
             if (isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) return;
 
             if (firebaseId) {
-                await db.collection('products').doc(firebaseId).update({ costPrice: newCost, price: newPrice, stock: newQty, supplier: newSupplier });
+                await db.collection('products').doc(firebaseId).update({ serialNo: newSN, costPrice: newCost, price: newPrice, stock: newQty, supplier: newSupplier });
             }
+            products[idx].serialNo = newSN;
             products[idx].costPrice = newCost;
             products[idx].price = newPrice;
             products[idx].stock = newQty;
@@ -1192,7 +1212,7 @@
             closeModal();
             renderProducts();
             updateLowStockNotificationBadge();
-            showToast("Price, Stock & Supplier updated successfully!");
+            showToast("Price, Stock, S/N & Supplier updated successfully!");
         }
 
         async function saveNewProduct(e) {
@@ -1200,6 +1220,7 @@
             const newProd = {
                 id: (100 + products.length + 1).toString(),
                 name: document.getElementById('add-p-name').value,
+                serialNo: (document.getElementById('add-p-sn')?.value || '').trim(),
                 costPrice: parseFloat(document.getElementById('add-p-cost')?.value) || 0,
                 price: parseFloat(document.getElementById('add-p-price').value),
                 stock: parseInt(document.getElementById('add-p-qty').value),
@@ -1211,7 +1232,7 @@
             closeModal();
             renderProducts();
             updateLowStockNotificationBadge();
-            showToast("Product added with supplier!");
+            showToast("Product added with S/N & supplier!");
         }
 
         async function deleteProduct(firebaseId, idx) {
@@ -1590,12 +1611,12 @@
             if (!supplier) return;
 
             currentSupBillItems = [
-                { productId: '', name: '', category: 'General', qty: 1, costRate: '', mrpRate: '' }
+                { productId: '', name: '', serialNo: '', category: 'General', qty: 1, costRate: '', mrpRate: '' }
             ];
 
             const productOptions = products.map(p => {
                 const pid = p.firebaseId || p.id || '';
-                return `<option value="${pid}" data-name="${p.name}" data-price="${p.price || 0}" data-cost="${p.costPrice || ''}" data-cat="${p.category || 'General'}">${p.name} (Stock: ${p.stock || 0}, MRP: Rs. ${p.price || 0})</option>`;
+                return `<option value="${pid}" data-name="${p.name}" data-sn="${p.serialNo || ''}" data-price="${p.price || 0}" data-cost="${p.costPrice || ''}" data-cat="${p.category || 'General'}">${p.name} (Stock: ${p.stock || 0}, MRP: Rs. ${p.price || 0})</option>`;
             }).join('');
 
             document.getElementById('modal-container').innerHTML = `
@@ -1667,7 +1688,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Existing Stock Item (ऐच्छिक)</label>
                                 <select onchange="onSelectBillRowProduct(${rIdx}, this)" class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold">
@@ -1678,6 +1699,10 @@
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-700 mb-0.5">Item Name (सामानको नाम) *</label>
                                 <input type="text" id="sup-row-name-${rIdx}" value="${item.name}" oninput="updateSupBillRowField(${rIdx}, 'name', this.value)" required placeholder="Type item name..." class="w-full bg-white text-slate-900 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-indigo-800 mb-0.5">Serial No / S/N</label>
+                                <input type="text" id="sup-row-sn-${rIdx}" value="${item.serialNo || ''}" oninput="updateSupBillRowField(${rIdx}, 'serialNo', this.value)" placeholder="e.g. SN12345" class="w-full bg-indigo-50/50 text-slate-900 border border-indigo-300 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-700 mb-0.5">Category</label>
@@ -1715,7 +1740,7 @@
         }
 
         function addSupBillRow() {
-            currentSupBillItems.push({ productId: '', name: '', category: 'General', qty: 1, costRate: '', mrpRate: '' });
+            currentSupBillItems.push({ productId: '', name: '', serialNo: '', category: 'General', qty: 1, costRate: '', mrpRate: '' });
             renderSupBillRows();
         }
 
@@ -1733,6 +1758,7 @@
             item.productId = selectEl.value;
             if (selectEl.value) {
                 item.name = selectedOption.getAttribute('data-name') || selectedOption.text.split(' (Stock:')[0];
+                item.serialNo = selectedOption.getAttribute('data-sn') || '';
                 item.mrpRate = selectedOption.getAttribute('data-price') || '';
                 item.costRate = selectedOption.getAttribute('data-cost') || '';
                 item.category = selectedOption.getAttribute('data-cat') || 'General';
@@ -1779,6 +1805,7 @@
             try {
                 for (const item of validItems) {
                     const itemName = item.name.trim();
+                    const itemSN = (item.serialNo || '').trim();
                     const itemCat = (item.category || 'General').trim();
                     const qty = parseInt(item.qty) || 0;
                     const costRate = parseFloat(item.costRate) || 0;
@@ -1794,6 +1821,7 @@
                         billNo,
                         billDate,
                         itemName,
+                        serialNo: itemSN,
                         qty,
                         costRate,
                         mrpRate,
@@ -1810,10 +1838,12 @@
                     if (existingIndex !== -1) {
                         const prod = products[existingIndex];
                         const updatedStock = (parseInt(prod.stock) || 0) + qty;
+                        const mergedSN = itemSN ? (prod.serialNo && prod.serialNo !== itemSN ? `${prod.serialNo}, ${itemSN}` : itemSN) : (prod.serialNo || '');
                         const updatePayload = {
                             stock: updatedStock,
                             price: mrpRate,
                             costPrice: costRate,
+                            serialNo: mergedSN,
                             supplier: supplier.name
                         };
                         if (prod.firebaseId) {
@@ -1822,11 +1852,13 @@
                         prod.stock = updatedStock;
                         prod.price = mrpRate;
                         prod.costPrice = costRate;
+                        prod.serialNo = mergedSN;
                         prod.supplier = supplier.name;
                     } else {
                         const newProd = {
                             id: (100 + products.length + 1).toString(),
                             name: itemName,
+                            serialNo: itemSN,
                             category: itemCat,
                             supplier: supplier.name,
                             stock: qty,
@@ -1907,7 +1939,7 @@
                                     <tr class="border-b border-slate-100">
                                         <td class="py-2 px-2 text-slate-600">${r.billDate || ''}</td>
                                         <td class="py-2 px-2 font-mono font-bold text-purple-700">${r.billNo || '-'}</td>
-                                        <td class="py-2 px-2 font-bold text-slate-900">${r.itemName} ${!isPay ? `(Qty: ${r.qty})` : ''}</td>
+                                        <td class="py-2 px-2 font-bold text-slate-900">${r.itemName} ${!isPay ? `(Qty: ${r.qty})` : ''} ${r.serialNo ? `<span class="text-[10px] font-mono text-indigo-700 block">S/N: ${r.serialNo}</span>` : ''}</td>
                                         <td class="py-2 px-2 text-slate-600">${!isPay ? `Cost: Rs.${r.costRate} / MRP: Rs.${r.mrpRate}` : '-'}</td>
                                         <td class="py-2 px-2 text-right font-extrabold ${isPay ? 'text-emerald-600' : 'text-rose-600'}">
                                             ${isPay ? `- Rs. ${Math.abs(r.billTotal).toLocaleString()}` : `+ Rs. ${r.billTotal.toLocaleString()}`}
